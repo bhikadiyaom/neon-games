@@ -89,6 +89,7 @@ const DEFAULTS = { mode: 'dm', scoreLimit: 20, bots: 0, difficulty: 'normal', sp
 const LIMITS = { scoreLimit: [0, 100], bots: [0, 8], speedPct: [60, 160], radar: [0, 1] };
 const MODES = ['dm', 'tdm'], DIFFS = ['easy', 'normal', 'hard'];
 const SETTINGS_FILE = path.join(__dirname, 'settings.json');
+const PERSIST = !process.env.NO_PERSIST;   // online rooms start from the defaults and never touch settings.json
 function normalize(src, base) {
   const out = { ...base };
   if (!src || typeof src !== 'object') return out;
@@ -101,8 +102,8 @@ function normalize(src, base) {
   return out;
 }
 const settings = { ...DEFAULTS };
-try { Object.assign(settings, normalize(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')), DEFAULTS)); } catch { /* first run */ }
-function saveSettings() { try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch { /* read-only folder: fine */ } }
+if (PERSIST) try { Object.assign(settings, normalize(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')), DEFAULTS)); } catch { /* first run */ }
+function saveSettings() { if (!PERSIST) return; try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch { /* read-only folder: fine */ } }
 const BASE_SPEED = 3.4;
 const speedNow = () => BASE_SPEED * settings.speedPct / 100;
 

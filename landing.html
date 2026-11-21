@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon Arcade</title>
+<style>
+  :root { --bg: #07080f; --card: #0d1028; --line: #2a3170; --txt: #e8ecff; --dim: #8a93c9; --cy: #00e5ff; --pk: #ff3d81; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 50% 0%, #1a1f4d, var(--bg) 60%); color: var(--txt); font-family: system-ui, Segoe UI, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 16px 60px; }
+  h1 { margin: 0; text-align: center; font-size: clamp(34px, 8vw, 62px); letter-spacing: 8px; color: var(--cy); text-shadow: 0 0 18px var(--cy), 0 0 46px #ff3d8166; }
+  .tag { text-align: center; color: var(--dim); margin: 8px 0 34px; font-size: 17px; }
+  .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .game { background: linear-gradient(180deg, #121740, var(--card)); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: 0 0 40px #00e5ff14; display: flex; flex-direction: column; }
+  .game h2 { margin: 0 0 4px; font-size: 26px; letter-spacing: 2px; }
+  .game.strike h2 { color: var(--pk); text-shadow: 0 0 14px #ff3d8199; }
+  .game.arena h2 { color: var(--cy); text-shadow: 0 0 14px #00e5ff99; }
+  .kind { color: var(--dim); font-size: 14px; margin-bottom: 12px; }
+  .game p { margin: 0 0 16px; color: #c3caf5; line-height: 1.55; font-size: 15px; flex: 1; }
+  .pill { display: inline-block; font-size: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 99px; margin: 0 6px 6px 0; color: var(--dim); }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 13px 18px; font-weight: 700; font-size: 17px; color: #fff; }
+  .create { background: var(--pk); box-shadow: 0 0 18px #ff3d8188; }
+  .arena .create { background: #0aa7c2; box-shadow: 0 0 18px #00e5ff55; }
+  button:hover { filter: brightness(1.15); } button:disabled { opacity: .5; cursor: wait; }
+  .join { margin: 30px auto 0; max-width: 520px; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .join h3 { margin: 0 0 12px; font-size: 18px; }
+  .joinrow { display: flex; gap: 8px; justify-content: center; }
+  input { font: inherit; font-size: 22px; letter-spacing: 6px; text-transform: uppercase; text-align: center; width: 170px; padding: 11px; border-radius: 10px; border: 1px solid var(--line); background: #070918; color: #fff; outline: none; }
+  input:focus { border-color: var(--cy); box-shadow: 0 0 12px #00e5ff55; }
+  .go { background: #2f3aa8; }
+  #msg { min-height: 22px; margin-top: 10px; color: #ffd400; }
+  #created { display: none; margin: 26px auto 0; max-width: 620px; background: #0b1f1a; border: 1px solid #1f7a5a; border-radius: 16px; padding: 22px; text-align: center; }
+  #created h3 { margin: 0 0 4px; color: #7cff4f; font-size: 22px; }
+  .codebig { font-size: 52px; letter-spacing: 12px; font-weight: 800; color: #fff; margin: 6px 0; text-shadow: 0 0 20px #7cff4f77; }
+  .linkbox { display: flex; gap: 8px; margin: 10px 0 16px; }
+  .linkbox input { flex: 1; width: auto; letter-spacing: 0; text-transform: none; font-size: 15px; }
+  .how { margin: 38px auto 0; max-width: 700px; color: var(--dim); font-size: 14px; line-height: 1.8; text-align: center; }
+  .how b { color: var(--txt); }
+</style>
+</head>
+<body>
+<main>
+  <h1>NEON ARCADE</h1>
+  <div class="tag">Free browser shooters. Make a private room, send the link, play together.</div>
+
+  <div class="games">
+    <section class="game strike">
+      <h2>NEON STRIKE</h2>
+      <div class="kind">First-person 3D shooter</div>
+      <p>Run, jump in and shoot in a neon maze. Rifle, shotgun and sniper, enemy radar, bots to practise against, deathmatch or team battle.</p>
+      <div><span class="pill">2-8 players</span><span class="pill">Bots</span><span class="pill">Mouse + keyboard</span></div>
+      <button class="create" data-game="strike">Create private room</button>
+    </section>
+    <section class="game arena">
+      <h2>NEON ARENA</h2>
+      <div class="kind">Top-down team shooter</div>
+      <p>Red vs Blue on a glowing map. Hold the capture zone, bounce shots off walls and win as a team. Easy to pick up in a minute.</p>
+      <div><span class="pill">2-8 players</span><span class="pill">Teams</span><span class="pill">Capture zone</span></div>
+      <button class="create" data-game="arena">Create private room</button>
+    </section>
+  </div>
+
+  <div id="created">
+    <h3>Room ready!</h3>
+    <div style="color:#9bd">Send this link or code to your friends</div>
+    <div class="codebig" id="bigCode"></div>
+    <div class="linkbox"><input id="inviteLink" readonly><button class="go" id="copyBtn">Copy</button></div>
+    <button class="create" id="enterBtn">Enter my room</button>
+    <div style="margin-top:12px;color:#8fb;font-size:13px">You are the room host: you can change bots, mode and win score in the dashboard (press Esc in the game).</div>
+  </div>
+
+  <div class="join">
+    <h3>Got a room code?</h3>
+    <div class="joinrow"><input id="code" maxlength="4" placeholder="CODE" autocomplete="off"><button class="go" id="joinBtn">Join</button></div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="how">
+    <b>How it works.</b> Press <b>Create private room</b>, then send the link to friends anywhere in the world. They open it, type a name and play. Nothing to install.<br>
+    Rooms are private (only people with the link or 4-letter code can find them) and close by themselves after everyone leaves.
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let mine = null;
+const msg = t => $('msg').textContent = t || '';
+
+document.querySelectorAll('.create').forEach(b => { if (!b.dataset.game) return; b.onclick = async () => {
+  b.disabled = true; msg('');
+  try {
+    const r = await fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game: b.dataset.game }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Could not create a room');
+    mine = j;
+    $('bigCode').textContent = j.code;
+    $('inviteLink').value = location.origin + j.url;
+    $('created').style.display = 'block';
+    $('created').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) { msg(e.message); }
+  b.disabled = false;
+}; });
+$('copyBtn').onclick = async () => {
+  try { await navigator.clipboard.writeText($('inviteLink').value); $('copyBtn').textContent = 'Copied!'; }
+  catch { $('inviteLink').select(); document.execCommand('copy'); $('copyBtn').textContent = 'Copied!'; }
+  setTimeout(() => $('copyBtn').textContent = 'Copy', 1500);
+};
+$('enterBtn').onclick = () => { if (mine) location.href = mine.url + '?admin=' + mine.admin; };
+
+async function join() {
+  const c = $('code').value.trim().toUpperCase();
+  if (c.length !== 4) return msg('Type the 4-letter room code.');
+  msg('Looking for the room...');
+  try {
+    const r = await fetch('/api/rooms/' + encodeURIComponent(c), { cache: 'no-store' });
+    if (!r.ok) return msg('No room with that code. It may have closed.');
+    location.href = '/r/' + c + '/';
+  } catch { msg('Could not reach the server.'); }
+}
+$('joinBtn').onclick = join;
+$('code').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+</script>
+</body>
+</html>

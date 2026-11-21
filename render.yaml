@@ -1,29 +1,15 @@
-# Render Blueprint: deploys BOTH games from this one repository.
-# Render > New > Blueprint > pick the repo. Each game gets its own https link.
-# After deploy, open each service's Environment tab to see the generated ADMIN_KEY.
+# Render Blueprint: ONE service runs the Neon Arcade hub (landing page + private rooms for both games).
+# Render > New > Blueprint > pick the repo > Apply.
 services:
   - type: web
-    name: neon-arena
+    name: neon-arcade
     runtime: node
-    plan: free
+    plan: free            # switch to "starter" so it never sleeps (recommended once you share it widely)
     buildCommand: "echo no build needed"
-    startCommand: node server.js
-    healthCheckPath: /api/settings
+    startCommand: node hub.js
+    healthCheckPath: /api/status
     envVars:
-      - key: ADMIN_KEY
-        generateValue: true
-      - key: PUBLIC_MODE
-        value: "1"
-  - type: web
-    name: neon-strike
-    runtime: node
-    plan: free
-    rootDir: fps-strike
-    buildCommand: "echo no build needed"
-    startCommand: node server.js
-    healthCheckPath: /api/settings
-    envVars:
-      - key: ADMIN_KEY
-        generateValue: true
-      - key: PUBLIC_MODE
-        value: "1"
+      - key: MAX_ROOMS
+        value: "8"        # each room is a small separate process; 8 fits comfortably in 512 MB
+      - key: ROOM_IDLE_MINUTES
+        value: "10"       # empty rooms close after this long

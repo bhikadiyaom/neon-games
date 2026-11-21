@@ -42,6 +42,7 @@ const LIMITS = {
 };
 const MODES = ['zone', 'tdm'], DIFFS = ['easy', 'normal', 'hard'];
 const SETTINGS_FILE = path.join(__dirname, 'settings.json');
+const PERSIST = !process.env.NO_PERSIST;   // online rooms start from the defaults and never touch settings.json
 
 function normalize(src, base) {
   const out = { ...base };
@@ -55,8 +56,8 @@ function normalize(src, base) {
   return out;
 }
 const settings = { ...DEFAULTS };
-try { Object.assign(settings, normalize(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')), DEFAULTS)); } catch { /* first run */ }
-function saveSettings() { try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch { /* read-only folder: fine */ } }
+if (PERSIST) try { Object.assign(settings, normalize(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')), DEFAULTS)); } catch { /* first run */ }
+function saveSettings() { if (!PERSIST) return; try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch { /* read-only folder: fine */ } }
 
 // ---------- State ----------
 const players = new Map(); // id -> player (humans and bots)

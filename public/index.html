@@ -110,7 +110,7 @@ try { nameEl.value = localStorage.getItem('arenaName') || ''; } catch {}
 // owner of an online server opens the game once with ?admin=KEY to get the host settings
 function adminHeaders() {
   let k = '';
-  try { const q = new URLSearchParams(location.search).get('admin'); if (q) sessionStorage.setItem('adminKey', q); k = sessionStorage.getItem('adminKey') || ''; } catch {}
+  try { const q = new URLSearchParams(location.search).get('admin'); if (q) { sessionStorage.setItem('adminKey', q); history.replaceState(null, '', location.pathname); } k = sessionStorage.getItem('adminKey') || ''; } catch {}
   return k ? { 'X-Admin-Key': k } : {};
 }
 let cfg = null, isHost = false, limits = {}, defaults = {};
@@ -162,7 +162,7 @@ async function loadCfg() {
   if (pendingSave) return; // never let a refresh overwrite a change that has not been saved yet
   const ver = cfgVersion;
   try {
-    const j = await (await fetch('/api/settings', { cache: 'no-store', headers: adminHeaders() })).json();
+    const j = await (await fetch('api/settings', { cache: 'no-store', headers: adminHeaders() })).json();
     if (pendingSave || ver !== cfgVersion) return; // user changed something while we were fetching
     cfg = j.settings; isHost = j.isHost; limits = j.limits; defaults = j.defaults;
     renderCfg();
@@ -177,7 +177,7 @@ function pushCfg(patch) {
   saveTimer = setTimeout(async () => {
     const v = cfgVersion;
     try {
-      const r = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json', ...adminHeaders() }, body: JSON.stringify(cfg) });
+      const r = await fetch('api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json', ...adminHeaders() }, body: JSON.stringify(cfg) });
       if (r.ok && v === cfgVersion) { const j = await r.json(); cfg = j.settings; isHost = j.isHost; }
     } catch {}
     if (v === cfgVersion) pendingSave = false; // a newer change is still waiting to be saved otherwise
@@ -217,7 +217,7 @@ try {
 function connect(name, team) {
   const status = $('status');
   status.textContent = 'Connecting...';
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${location.pathname}`);
   ws.onopen = () => ws.send(JSON.stringify({ t: 'join', name, team }));
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
