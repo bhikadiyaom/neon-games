@@ -3,110 +3,217 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05060f">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <title>Neon Arcade</title>
 <style>
-  :root { --bg: #07080f; --card: #0d1028; --line: #2a3170; --txt: #e8ecff; --dim: #8a93c9; --cy: #00e5ff; --pk: #ff3d81; }
+  :root { --bg: #05060f; --ink: #eaf0ff; --dim: #9aa4d8; --cy: #00e5ff; --pk: #ff3d81; --vi: #7a4dff; --edge: rgba(150, 160, 255, .26); }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 50% 0%, #1a1f4d, var(--bg) 60%); color: var(--txt); font-family: system-ui, Segoe UI, sans-serif; }
-  main { max-width: 980px; margin: 0 auto; padding: 40px 16px 60px; }
-  h1 { margin: 0; text-align: center; font-size: clamp(34px, 8vw, 62px); letter-spacing: 8px; color: var(--cy); text-shadow: 0 0 18px var(--cy), 0 0 46px #ff3d8166; }
-  .tag { text-align: center; color: var(--dim); margin: 8px 0 34px; font-size: 17px; }
-  .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
-  .game { background: linear-gradient(180deg, #121740, var(--card)); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: 0 0 40px #00e5ff14; display: flex; flex-direction: column; }
-  .game h2 { margin: 0 0 4px; font-size: 26px; letter-spacing: 2px; }
-  .game.strike h2 { color: var(--pk); text-shadow: 0 0 14px #ff3d8199; }
-  .game.arena h2 { color: var(--cy); text-shadow: 0 0 14px #00e5ff99; }
-  .kind { color: var(--dim); font-size: 14px; margin-bottom: 12px; }
-  .game p { margin: 0 0 16px; color: #c3caf5; line-height: 1.55; font-size: 15px; flex: 1; }
-  .pill { display: inline-block; font-size: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 99px; margin: 0 6px 6px 0; color: var(--dim); }
-  button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 13px 18px; font-weight: 700; font-size: 17px; color: #fff; }
-  .create { background: var(--pk); box-shadow: 0 0 18px #ff3d8188; }
-  .arena .create { background: #0aa7c2; box-shadow: 0 0 18px #00e5ff55; }
-  button:hover { filter: brightness(1.15); } button:disabled { opacity: .5; cursor: wait; }
-  .join { margin: 30px auto 0; max-width: 520px; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
-  .join h3 { margin: 0 0 12px; font-size: 18px; }
-  .joinrow { display: flex; gap: 8px; justify-content: center; }
-  input { font: inherit; font-size: 22px; letter-spacing: 6px; text-transform: uppercase; text-align: center; width: 170px; padding: 11px; border-radius: 10px; border: 1px solid var(--line); background: #070918; color: #fff; outline: none; }
-  input:focus { border-color: var(--cy); box-shadow: 0 0 12px #00e5ff55; }
-  .go { background: #2f3aa8; }
-  #msg { min-height: 22px; margin-top: 10px; color: #ffd400; }
-  #created { display: none; margin: 26px auto 0; max-width: 620px; background: #0b1f1a; border: 1px solid #1f7a5a; border-radius: 16px; padding: 22px; text-align: center; }
-  #created h3 { margin: 0 0 4px; color: #7cff4f; font-size: 22px; }
-  .codebig { font-size: 52px; letter-spacing: 12px; font-weight: 800; color: #fff; margin: 6px 0; text-shadow: 0 0 20px #7cff4f77; }
-  .linkbox { display: flex; gap: 8px; margin: 10px 0 16px; }
-  .linkbox input { flex: 1; width: auto; letter-spacing: 0; text-transform: none; font-size: 15px; }
-  .how { margin: 38px auto 0; max-width: 700px; color: var(--dim); font-size: 14px; line-height: 1.8; text-align: center; }
-  .how b { color: var(--txt); }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'Rajdhani', system-ui, Segoe UI, sans-serif; font-weight: 500; font-size: 18px; overflow-x: hidden; }
+  #bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 18px 60px; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .brand { font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 4px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .brand i { width: 14px; height: 14px; background: var(--cy); box-shadow: 0 0 16px var(--cy), 0 0 34px var(--cy); transform: rotate(45deg); display: inline-block; }
+  .live { font-size: 14px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .live b { width: 8px; height: 8px; border-radius: 50%; background: #5dff8a; box-shadow: 0 0 10px #5dff8a; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .hero { text-align: center; padding: 30px 0 26px; }
+  .hero h1 { margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(38px, 9vw, 84px); letter-spacing: clamp(4px, 1.6vw, 14px); line-height: 1.05;
+    background: linear-gradient(90deg, var(--cy), #fff 40%, var(--pk)); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 22px rgba(0, 229, 255, .45)); animation: flick 8s infinite; }
+  @keyframes flick { 0%, 93%, 100% { opacity: 1; } 94% { opacity: .65; } 95% { opacity: 1; } 97% { opacity: .8; } }
+  .hero p { margin: 14px auto 0; max-width: 620px; color: var(--dim); font-size: clamp(18px, 2.6vw, 23px); line-height: 1.45; }
+  .hero p b { color: #fff; font-weight: 700; }
+
+  .joinbar { margin: 30px auto 0; max-width: 560px; padding: 18px; border-radius: 20px; background: linear-gradient(160deg, rgba(30, 26, 70, .65), rgba(8, 8, 26, .7)); border: 1px solid var(--edge); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 24px 70px rgba(0, 0, 0, .5), 0 0 60px rgba(122, 77, 255, .18); }
+  .joinbar h3 { margin: 0 0 12px; font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 3px; color: var(--cy); font-weight: 700; }
+  .joinrow { display: flex; gap: 10px; }
+  .joinrow input { flex: 1; min-width: 0; font: 700 30px 'Orbitron', sans-serif; letter-spacing: 10px; text-transform: uppercase; text-align: center; padding: 12px 8px 12px 18px; border-radius: 14px; border: 1px solid var(--edge); background: rgba(3, 4, 16, .75); color: #fff; outline: none; transition: .2s; }
+  .joinrow input::placeholder { color: rgba(154, 164, 216, .35); }
+  .joinrow input:focus { border-color: var(--cy); box-shadow: 0 0 0 3px rgba(0, 229, 255, .2), 0 0 28px rgba(0, 229, 255, .3); }
+  #msg { min-height: 24px; margin-top: 10px; color: #ffd45a; font-weight: 600; }
+
+  button { font: inherit; cursor: pointer; border: 0; color: #fff; }
+  .btn { position: relative; overflow: hidden; font-family: 'Orbitron', sans-serif; font-weight: 800; letter-spacing: 2px; font-size: 15px; padding: 15px 24px; border-radius: 14px; transition: transform .15s, box-shadow .15s; white-space: nowrap; }
+  .btn::after { content: ''; position: absolute; top: 0; left: -80%; width: 45%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.4), transparent); transform: skewX(-20deg); animation: shine 3.4s ease-in-out infinite; }
+  @keyframes shine { 0%, 55% { left: -80%; } 100% { left: 170%; } }
+  .btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); } .btn:active { transform: none; } .btn:disabled { opacity: .55; cursor: wait; }
+  .b-join { background: linear-gradient(135deg, #4a56ff, #7a4dff); box-shadow: 0 6px 26px rgba(122, 77, 255, .5); }
+  .b-strike { background: linear-gradient(135deg, var(--pk), #b03cff); box-shadow: 0 8px 30px rgba(255, 61, 129, .5); width: 100%; }
+  .b-arena { background: linear-gradient(135deg, #00c2e6, #3c7bff); box-shadow: 0 8px 30px rgba(0, 194, 230, .45); width: 100%; }
+
+  .or { text-align: center; color: var(--dim); letter-spacing: 4px; font-size: 13px; margin: 34px 0 6px; text-transform: uppercase; display: flex; align-items: center; gap: 16px; }
+  .or::before, .or::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--edge)); } .or::after { transform: scaleX(-1); }
+  .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; margin-top: 18px; }
+  .game { position: relative; border-radius: 24px; overflow: hidden; background: linear-gradient(170deg, rgba(24, 22, 60, .78), rgba(8, 8, 24, .85)); border: 1px solid var(--edge); transition: transform .25s, box-shadow .25s, border-color .25s; display: flex; flex-direction: column; }
+  .game:hover { transform: translateY(-6px); }
+  .game.strike:hover { border-color: rgba(255, 61, 129, .7); box-shadow: 0 24px 70px rgba(255, 61, 129, .25); }
+  .game.arena:hover { border-color: rgba(0, 229, 255, .7); box-shadow: 0 24px 70px rgba(0, 229, 255, .22); }
+  .game canvas { display: block; width: 100%; height: 190px; background: #04050f; border-bottom: 1px solid var(--edge); }
+  .gbody { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
+  .game h2 { margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 26px; letter-spacing: 3px; }
+  .strike h2 { color: var(--pk); text-shadow: 0 0 18px rgba(255, 61, 129, .55); } .arena h2 { color: var(--cy); text-shadow: 0 0 18px rgba(0, 229, 255, .5); }
+  .kind { color: var(--dim); letter-spacing: 3px; font-size: 13px; text-transform: uppercase; margin: 4px 0 12px; }
+  .gbody p { margin: 0 0 16px; color: #c7cff7; line-height: 1.5; flex: 1; font-size: 19px; }
+  .pills { margin-bottom: 18px; } .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .5px; padding: 4px 12px; border: 1px solid var(--edge); border-radius: 99px; margin: 0 6px 6px 0; color: var(--dim); background: rgba(255, 255, 255, .03); }
+
+  #created { display: none; margin: 30px auto 0; max-width: 640px; border-radius: 24px; padding: 28px 24px; text-align: center; background: linear-gradient(160deg, rgba(10, 44, 38, .8), rgba(6, 14, 22, .85)); border: 1px solid rgba(93, 255, 138, .45); box-shadow: 0 0 60px rgba(93, 255, 138, .15); backdrop-filter: blur(12px); animation: pop .4s cubic-bezier(.2, 1.4, .4, 1); }
+  @keyframes pop { from { transform: scale(.92); opacity: 0; } }
+  #created h3 { margin: 0; font-family: 'Orbitron', sans-serif; letter-spacing: 3px; color: #5dff8a; font-size: 22px; }
+  .codebig { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(46px, 12vw, 78px); letter-spacing: 14px; padding-left: 14px; margin: 8px 0; text-shadow: 0 0 30px rgba(93, 255, 138, .6); }
+  .linkbox { display: flex; gap: 8px; margin: 10px 0 18px; }
+  .linkbox input { flex: 1; min-width: 0; font: 600 17px 'Rajdhani', sans-serif; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--edge); background: rgba(3, 4, 16, .75); color: #fff; outline: none; }
+  .b-go { background: linear-gradient(135deg, #1fd47a, #12a3c8); box-shadow: 0 6px 26px rgba(31, 212, 122, .4); }
+  .note { margin-top: 12px; color: #8fdcc0; font-size: 16px; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 56px; }
+  .step { padding: 22px; border-radius: 20px; background: rgba(14, 14, 40, .55); border: 1px solid var(--edge); }
+  .step em { font-style: normal; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 34px; background: linear-gradient(135deg, var(--cy), var(--pk)); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+  .step h4 { margin: 6px 0 4px; font-size: 21px; letter-spacing: 1px; } .step p { margin: 0; color: var(--dim); font-size: 17px; line-height: 1.45; }
+  footer { margin-top: 50px; text-align: center; color: rgba(154, 164, 216, .6); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
+  @media (max-width: 560px) { .joinrow { flex-direction: column; } .linkbox { flex-direction: column; } .games { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<main>
-  <h1>NEON ARCADE</h1>
-  <div class="tag">Free browser shooters. Make a private room, send the link, play together.</div>
+<canvas id="bg"></canvas>
+<div class="wrap">
+  <nav><div class="brand"><i></i>NEON ARCADE</div><div class="live"><b></b>Free &middot; Play in your browser</div></nav>
+
+  <header class="hero">
+    <h1>NEON<br>ARCADE</h1>
+    <p>Fast neon shooters you play with friends. <b>Make a private room, share the code,</b> and you're in a match in seconds. Nothing to install.</p>
+    <div class="joinbar">
+      <h3>HAVE A ROOM CODE?</h3>
+      <div class="joinrow"><input id="code" maxlength="4" placeholder="----" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn b-join" id="joinBtn">JOIN ROOM</button></div>
+      <div id="msg"></div>
+    </div>
+  </header>
+
+  <div class="or">or start your own room</div>
 
   <div class="games">
     <section class="game strike">
-      <h2>NEON STRIKE</h2>
-      <div class="kind">First-person 3D shooter</div>
-      <p>Run, jump in and shoot in a neon maze. Rifle, shotgun and sniper, enemy radar, bots to practise against, deathmatch or team battle.</p>
-      <div><span class="pill">2-8 players</span><span class="pill">Bots</span><span class="pill">Mouse + keyboard</span></div>
-      <button class="create" data-game="strike">Create private room</button>
+      <canvas id="pvStrike" width="640" height="380"></canvas>
+      <div class="gbody">
+        <h2>NEON STRIKE</h2><div class="kind">First-person 3D shooter</div>
+        <p>Run, strafe and shoot in a neon maze. Rifle, shotgun and sniper, radar, bots to practise against, deathmatch or team battle.</p>
+        <div class="pills"><span class="pill">2-8 players</span><span class="pill">Bots</span><span class="pill">Radar</span><span class="pill">3 weapons</span></div>
+        <button class="btn b-strike" data-game="strike">CREATE ROOM</button>
+      </div>
     </section>
     <section class="game arena">
-      <h2>NEON ARENA</h2>
-      <div class="kind">Top-down team shooter</div>
-      <p>Red vs Blue on a glowing map. Hold the capture zone, bounce shots off walls and win as a team. Easy to pick up in a minute.</p>
-      <div><span class="pill">2-8 players</span><span class="pill">Teams</span><span class="pill">Capture zone</span></div>
-      <button class="create" data-game="arena">Create private room</button>
+      <canvas id="pvArena" width="640" height="380"></canvas>
+      <div class="gbody">
+        <h2>NEON ARENA</h2><div class="kind">Top-down team shooter</div>
+        <p>Red vs Blue on a glowing map. Bounce shots off walls, hold the capture zone and win as a team. Easy to learn in a minute.</p>
+        <div class="pills"><span class="pill">2-8 players</span><span class="pill">Teams</span><span class="pill">Capture zone</span><span class="pill">Bots</span></div>
+        <button class="btn b-arena" data-game="arena">CREATE ROOM</button>
+      </div>
     </section>
   </div>
 
   <div id="created">
-    <h3>Room ready!</h3>
-    <div style="color:#9bd">Send this link or code to your friends</div>
+    <h3>ROOM READY</h3>
+    <div style="color:#9fd8c6">Send this code or link to your friends</div>
     <div class="codebig" id="bigCode"></div>
-    <div class="linkbox"><input id="inviteLink" readonly><button class="go" id="copyBtn">Copy</button></div>
-    <button class="create" id="enterBtn">Enter my room</button>
-    <div style="margin-top:12px;color:#8fb;font-size:13px">You are the room host: you can change bots, mode and win score in the dashboard (press Esc in the game).</div>
+    <div class="linkbox"><input id="inviteLink" readonly><button class="btn b-join" id="copyBtn">COPY</button></div>
+    <button class="btn b-go" id="enterBtn">ENTER MY ROOM</button>
+    <div class="note">You are the host: change bots, mode and win score from the dashboard (press Esc in the game).</div>
   </div>
 
-  <div class="join">
-    <h3>Got a room code?</h3>
-    <div class="joinrow"><input id="code" maxlength="4" placeholder="CODE" autocomplete="off"><button class="go" id="joinBtn">Join</button></div>
-    <div id="msg"></div>
+  <div class="steps">
+    <div class="step"><em>01</em><h4>Create a room</h4><p>Pick a game and press Create. You get a 4-letter code.</p></div>
+    <div class="step"><em>02</em><h4>Share the code</h4><p>Send the link or code to friends, anywhere in the world.</p></div>
+    <div class="step"><em>03</em><h4>Play</h4><p>They open this page, type the code and jump straight in.</p></div>
   </div>
+  <footer>Private rooms &middot; close automatically when empty &middot; no sign-up</footer>
+</div>
 
-  <div class="how">
-    <b>How it works.</b> Press <b>Create private room</b>, then send the link to friends anywhere in the world. They open it, type a name and play. Nothing to install.<br>
-    Rooms are private (only people with the link or 4-letter code can find them) and close by themselves after everyone leaves.
-  </div>
-</main>
 <script>
 const $ = id => document.getElementById(id);
-let mine = null;
 const msg = t => $('msg').textContent = t || '';
+let mine = null;
 
-document.querySelectorAll('.create').forEach(b => { if (!b.dataset.game) return; b.onclick = async () => {
+/* ---------- animated background: neon horizon grid + drifting sparks ---------- */
+(() => {
+  const c = $('bg'), x = c.getContext('2d'); let W, H, t = 0;
+  const sp = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), v: .02 + Math.random() * .06, s: .6 + Math.random() * 1.8, h: Math.random() < .5 ? 190 : 330 }));
+  const size = () => { c.width = W = innerWidth; c.height = H = innerHeight; }; size(); addEventListener('resize', size);
+  (function loop() {
+    t += .016; x.clearRect(0, 0, W, H);
+    const hz = H * .62, g = x.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, '#05060f'); g.addColorStop(1, '#1a0f3a'); x.fillStyle = g; x.fillRect(0, 0, W, hz);
+    const sun = x.createRadialGradient(W / 2, hz, 0, W / 2, hz, Math.min(W, 900) * .5); sun.addColorStop(0, 'rgba(255,61,129,.45)'); sun.addColorStop(.5, 'rgba(122,77,255,.18)'); sun.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = sun; x.fillRect(0, 0, W, hz);
+    x.fillStyle = '#07081a'; x.fillRect(0, hz, W, H - hz);
+    x.strokeStyle = 'rgba(0,229,255,.28)'; x.lineWidth = 1; x.beginPath();
+    for (let i = -24; i <= 24; i++) { x.moveTo(W / 2 + i * 14, hz); x.lineTo(W / 2 + i * (W / 12), H); }
+    const off = (t * .35) % 1;
+    for (let i = 0; i < 14; i++) { const p = Math.pow((i + off) / 14, 2.2), y = hz + p * (H - hz); x.moveTo(0, y); x.lineTo(W, y); }
+    x.stroke();
+    const fade = x.createLinearGradient(0, hz, 0, hz + 120); fade.addColorStop(0, 'rgba(5,6,15,.9)'); fade.addColorStop(1, 'rgba(5,6,15,0)'); x.fillStyle = fade; x.fillRect(0, hz, W, 120);
+    x.globalCompositeOperation = 'lighter';
+    for (const p of sp) { p.y -= p.v * .016; if (p.y < 0) { p.y = 1; p.x = Math.random(); } x.fillStyle = `hsla(${p.h},100%,65%,.55)`; x.beginPath(); x.arc(p.x * W, p.y * hz, p.s, 0, 7); x.fill(); }
+    x.globalCompositeOperation = 'source-over';
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ---------- animated card previews ---------- */
+function runPreview(id, draw) {
+  const c = $(id), g = c.getContext('2d'); let t = 0, on = true;
+  new IntersectionObserver(e => on = e[0].isIntersecting).observe(c);
+  (function loop() { requestAnimationFrame(loop); if (!on) return; t += .016; draw(g, c.width, c.height, t); })();
+}
+runPreview('pvStrike', (g, W, H, t) => { // neon corridor in perspective with a gun and crosshair
+  const hz = H * .46, vx = W / 2 + Math.sin(t * .6) * 40;
+  let s = g.createLinearGradient(0, 0, 0, hz); s.addColorStop(0, '#07040f'); s.addColorStop(1, '#1d0f33'); g.fillStyle = s; g.fillRect(0, 0, W, hz);
+  s = g.createLinearGradient(0, hz, 0, H); s.addColorStop(0, '#120a24'); s.addColorStop(1, '#2d1850'); g.fillStyle = s; g.fillRect(0, hz, W, H - hz);
+  g.lineWidth = 2; const off = (t * .5) % 1;
+  for (let i = 0; i < 12; i++) { const p = Math.pow((i + off) / 12, 2), d = 1 - p, y1 = hz - (hz - 10) * p, y2 = hz + (H - hz - 10) * p, xl = vx - (vx - 24) * p, xr = vx + (W - vx - 24) * p; // wall frames
+    g.strokeStyle = `rgba(255,61,129,${.1 + p * .5})`; g.strokeRect(xl, y1, xr - xl, y2 - y1); }
+  for (const side of [-1, 1]) { g.fillStyle = side < 0 ? 'rgba(70,90,230,.25)' : 'rgba(225,60,170,.22)'; g.beginPath(); g.moveTo(side < 0 ? 0 : W, 0); g.lineTo(vx + side * 22, hz - 26); g.lineTo(vx + side * 22, hz + 26); g.lineTo(side < 0 ? 0 : W, H); g.fill(); }
+  const ex = vx + Math.sin(t) * 40, ey = hz + 8; g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(ex, ey + 30, 16, 5, 0, 0, 7); g.fill(); // enemy
+  g.strokeStyle = '#7cff4f'; g.shadowColor = '#7cff4f'; g.shadowBlur = 12; g.fillStyle = '#10121c'; g.lineWidth = 2.5; g.fillRect(ex - 9, ey - 4, 18, 24); g.strokeRect(ex - 9, ey - 4, 18, 24); g.beginPath(); g.arc(ex, ey - 14, 8, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#7cff4f'; g.fillRect(ex - 5, ey - 16, 10, 3); g.shadowBlur = 0;
+  g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.moveTo(W / 2 - 16, hz); g.lineTo(W / 2 - 6, hz); g.moveTo(W / 2 + 6, hz); g.lineTo(W / 2 + 16, hz); g.moveTo(W / 2, hz - 16); g.lineTo(W / 2, hz - 6); g.moveTo(W / 2, hz + 6); g.lineTo(W / 2, hz + 16); g.stroke();
+  const kick = Math.max(0, Math.sin(t * 9)) * 8, gx = W / 2 + 70; g.fillStyle = '#17132b'; g.strokeStyle = '#ff3d81'; g.shadowColor = '#ff3d81'; g.shadowBlur = 14; g.lineWidth = 3; // gun
+  g.beginPath(); g.moveTo(gx - 38, H + 6 + kick); g.lineTo(gx - 26, H - 110 + kick); g.lineTo(gx + 8, H - 110 + kick); g.lineTo(gx + 26, H + 6 + kick); g.closePath(); g.fill(); g.stroke(); g.fillRect(gx - 14, H - 160 + kick, 16, 56); g.strokeRect(gx - 14, H - 160 + kick, 16, 56); g.shadowBlur = 0;
+  if (Math.sin(t * 9) > .85) { g.fillStyle = 'rgba(255,220,100,.9)'; g.beginPath(); g.arc(gx - 6, H - 164 + kick, 14, 0, 7); g.fill(); }
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(4,0,14,.75)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+});
+runPreview('pvArena', (g, W, H, t) => { // top-down arena with two fighters and bullets
+  let s = g.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W * .6); s.addColorStop(0, '#141a45'); s.addColorStop(1, '#060818'); g.fillStyle = s; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(80,95,255,.25)'; g.lineWidth = 1; g.beginPath(); for (let x = 0; x <= W; x += 40) { g.moveTo(x, 0); g.lineTo(x, H); } for (let y = 0; y <= H; y += 40) { g.moveTo(0, y); g.lineTo(W, y); } g.stroke();
+  for (const [x, y, w, h] of [[150, 90, 20, 150], [470, 140, 20, 150], [270, 175, 100, 20]]) { g.shadowColor = '#5b6cff'; g.shadowBlur = 20; g.fillStyle = '#232b78'; g.fillRect(x, y, w, h); g.shadowBlur = 0; g.strokeStyle = '#8c98ff'; g.lineWidth = 2; g.strokeRect(x, y, w, h); }
+  const zp = 1 + Math.sin(t * 3) * .03; g.fillStyle = 'rgba(0,229,255,.12)'; g.strokeStyle = 'rgba(0,229,255,.7)'; g.lineWidth = 3; g.beginPath(); g.arc(W / 2, H / 2 - 20, 70 * zp, 0, 7); g.fill(); g.stroke(); g.lineWidth = 9; g.beginPath(); g.arc(W / 2, H / 2 - 20, 58, -Math.PI / 2, -Math.PI / 2 + ((t * .25) % 1) * 6.283); g.stroke();
+  const pl = (x, y, a, col) => { const grd = g.createRadialGradient(x, y, 0, x, y, 46); grd.addColorStop(0, col + '66'); grd.addColorStop(1, col + '00'); g.fillStyle = grd; g.beginPath(); g.arc(x, y, 46, 0, 7); g.fill(); g.save(); g.translate(x, y); g.rotate(a); g.fillStyle = col; g.fillRect(14, -5, 24, 10); g.restore(); g.fillStyle = '#0b0e24'; g.strokeStyle = col; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 20, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); };
+  const rx = 90 + Math.sin(t * .9) * 22, ry = H / 2 - 20 + Math.cos(t * 1.1) * 40, bx = W - 90 - Math.sin(t * .8) * 22, by = H / 2 - 20 + Math.sin(t * 1.2) * 40;
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) { const f = (t * .9 + i / 3) % 1, x = rx + 30 + f * (bx - rx - 60), y = ry + (by - ry) * f; const gr = g.createLinearGradient(x, y, x - 40, y - (by - ry) * .1); gr.addColorStop(0, '#ff7088'); gr.addColorStop(1, 'rgba(255,61,90,0)'); g.strokeStyle = gr; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 40, y - (by - ry) * .1); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 3.5, 0, 7); g.fill(); }
+  for (let i = 0; i < 2; i++) { const f = (t * .8 + .5 + i / 2) % 1, x = bx - 30 - f * (bx - rx - 60), y = by + (ry - by) * f; g.strokeStyle = '#6fbaff'; g.lineWidth = 5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 36, y + (by - ry) * .08); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 3.5, 0, 7); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  pl(rx, ry, Math.atan2(by - ry, bx - rx), '#ff3d5a'); pl(bx, by, Math.atan2(ry - by, rx - bx), '#2f9bff');
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,10,.7)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+});
+
+/* ---------- rooms ---------- */
+document.querySelectorAll('[data-game]').forEach(b => b.onclick = async () => {
   b.disabled = true; msg('');
   try {
     const r = await fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game: b.dataset.game }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Could not create a room');
-    mine = j;
-    $('bigCode').textContent = j.code;
-    $('inviteLink').value = location.origin + j.url;
-    $('created').style.display = 'block';
-    $('created').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  } catch (e) { msg(e.message); }
+    mine = j; $('bigCode').textContent = j.code; $('inviteLink').value = location.origin + j.url;
+    $('created').style.display = 'block'; $('created').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) { msg(e.message); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   b.disabled = false;
-}; });
+});
 $('copyBtn').onclick = async () => {
-  try { await navigator.clipboard.writeText($('inviteLink').value); $('copyBtn').textContent = 'Copied!'; }
-  catch { $('inviteLink').select(); document.execCommand('copy'); $('copyBtn').textContent = 'Copied!'; }
-  setTimeout(() => $('copyBtn').textContent = 'Copy', 1500);
+  try { await navigator.clipboard.writeText($('inviteLink').value); } catch { $('inviteLink').select(); document.execCommand('copy'); }
+  $('copyBtn').textContent = 'COPIED!'; setTimeout(() => $('copyBtn').textContent = 'COPY', 1500);
 };
 $('enterBtn').onclick = () => { if (mine) location.href = mine.url + '?admin=' + mine.admin; };
-
 async function join() {
   const c = $('code').value.trim().toUpperCase();
   if (c.length !== 4) return msg('Type the 4-letter room code.');

@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <title>Neon Arena</title>
 <style>
   html, body { margin: 0; height: 100%; background: #07080f; color: #e8ecff; font-family: system-ui, Segoe UI, sans-serif; overflow: hidden; }
@@ -43,6 +45,69 @@
 
   .help { margin-top: 16px; color: #8a93c9; font-size: 13px; line-height: 1.7; }
   kbd { background: #1b2050; padding: 2px 7px; border-radius: 5px; border: 1px solid #333a80; color: #fff; }
+
+  /* ===== Neon Arcade theme (overrides the basic styles above) ===== */
+  :root { --a1: #00e5ff; --a2: #ff3d81; --ink: #eaf0ff; --dim: #9aa4d8; --glass: rgba(14, 12, 36, .62); --edge: rgba(150, 160, 255, .28); }
+  html, body { font-family: 'Rajdhani', system-ui, Segoe UI, sans-serif; font-weight: 500; }
+  #join { background:
+      radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--a1) 30%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 90% 100%, color-mix(in srgb, var(--a2) 24%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 5% 90%, rgba(120, 70, 255, .22), transparent 70%),
+      #05060f; }
+  #join::before { /* moving perspective grid */
+    content: ''; position: fixed; left: -50%; right: -50%; bottom: -10%; height: 70%; z-index: 0; pointer-events: none; opacity: .5;
+    background-image: linear-gradient(var(--edge) 1px, transparent 1px), linear-gradient(90deg, var(--edge) 1px, transparent 1px);
+    background-size: 56px 56px; transform: perspective(380px) rotateX(62deg); transform-origin: 50% 100%;
+    animation: gridmove 5s linear infinite; -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 85%); mask-image: linear-gradient(to top, #000 10%, transparent 85%); }
+  @keyframes gridmove { to { background-position: 0 56px; } }
+  .card { position: relative; z-index: 1; width: 560px; background: linear-gradient(160deg, rgba(26, 22, 64, .72), rgba(8, 8, 24, .78)); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--edge); border-radius: 22px; padding: 30px 34px; box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 30px 80px rgba(0, 0, 0, .55), 0 0 70px color-mix(in srgb, var(--a1) 22%, transparent); }
+  .card::before { content: ''; position: absolute; inset: -1px; border-radius: 22px; padding: 1px; pointer-events: none;
+    background: conic-gradient(from var(--ang, 0deg), transparent 0 55%, var(--a1), var(--a2), transparent 80%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: spin 6s linear infinite; }
+  @property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+  @keyframes spin { to { --ang: 360deg; } }
+  h1 { font-family: 'Orbitron', 'Rajdhani', sans-serif; font-weight: 900; font-size: clamp(30px, 7vw, 46px); letter-spacing: 7px; margin: 0 0 2px;
+    background: linear-gradient(90deg, var(--a1), #fff 45%, var(--a2)); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--a1) 70%, transparent)); animation: flick 7s infinite; }
+  @keyframes flick { 0%, 92%, 100% { opacity: 1; } 93% { opacity: .7; } 94% { opacity: 1; } 96% { opacity: .8; } }
+  .sub { color: var(--dim); font-size: 17px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 22px; }
+  input[type=text] { font-family: inherit; font-weight: 700; font-size: 22px; letter-spacing: 1px; width: 230px; padding: 13px 16px; border-radius: 12px; border: 1px solid var(--edge); background: rgba(5, 6, 20, .7); color: #fff; transition: .2s; }
+  input[type=text]:focus { border-color: var(--a2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--a2) 25%, transparent), 0 0 24px color-mix(in srgb, var(--a2) 35%, transparent); }
+  .big { position: relative; overflow: hidden; font-family: 'Orbitron', 'Rajdhani', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 3px; padding: 14px 26px; border-radius: 12px; color: #fff;
+    background: linear-gradient(135deg, var(--a1), color-mix(in srgb, var(--a1) 55%, #6a3cff)); box-shadow: 0 6px 26px color-mix(in srgb, var(--a1) 55%, transparent), 0 0 0 1px rgba(255,255,255,.18) inset; transition: transform .15s, box-shadow .15s; }
+  .big::after { content: ''; position: absolute; top: 0; left: -80%; width: 50%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform: skewX(-20deg); animation: shine 3.2s ease-in-out infinite; }
+  @keyframes shine { 0%, 55% { left: -80%; } 100% { left: 160%; } }
+  .big:hover { filter: none; transform: translateY(-2px) scale(1.03); box-shadow: 0 10px 34px color-mix(in srgb, var(--a1) 70%, transparent), 0 0 0 1px rgba(255,255,255,.3) inset; }
+  .big:active { transform: translateY(0) scale(.99); }
+  .teams { color: var(--dim); font-size: 15px; letter-spacing: 1px; }
+  .teams span { padding: 8px 16px; border-radius: 99px; border: 1px solid var(--edge); background: rgba(255,255,255,.03); font-weight: 700; transition: .15s; }
+  .teams label:hover span { background: rgba(255,255,255,.08); }
+  .teams input:checked + span { background: color-mix(in srgb, currentColor 16%, transparent); }
+  #status { font-weight: 700; letter-spacing: 1px; }
+  #cfgBox { border: 1px solid var(--edge); border-radius: 16px; background: rgba(6, 7, 22, .55); padding: 2px 18px 16px; }
+  #cfgBox summary { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 2px; color: var(--a2); padding: 13px 0; list-style: none; }
+  #cfgBox summary::-webkit-details-marker { display: none; }
+  .row > label { color: var(--dim); font-size: 16px; font-weight: 600; letter-spacing: .5px; }
+  .seg { background: rgba(0, 0, 0, .28); border: 1px solid var(--edge); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { border: 0; background: transparent; border-radius: 9px; padding: 9px 6px; font: 700 14px 'Rajdhani', sans-serif; letter-spacing: .5px; color: var(--dim); transition: .15s; }
+  .seg button:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,.06); }
+  .seg button.on { background: linear-gradient(135deg, color-mix(in srgb, var(--a2) 30%, #0a1030), color-mix(in srgb, var(--a2) 14%, #0a1030)); color: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--a2) 70%, transparent) inset, 0 0 16px color-mix(in srgb, var(--a2) 35%, transparent); text-shadow: 0 0 10px var(--a2); }
+  .grp { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--a1); margin: 18px 0 4px; display: flex; align-items: center; gap: 10px; }
+  .grp::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--edge), transparent); }
+  .slider input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--a1), var(--a2)); opacity: .9; outline: none; }
+  .slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--a1); box-shadow: 0 0 12px var(--a1); cursor: pointer; }
+  .slider input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--a1); box-shadow: 0 0 12px var(--a1); cursor: pointer; }
+  .slider input[type=range]:disabled { opacity: .35; filter: grayscale(.8); }
+  .slider output { font-family: 'Orbitron', sans-serif; font-size: 13px; color: #fff; }
+  #resetCfg { border: 1px solid var(--edge); color: var(--dim); border-radius: 10px; padding: 8px 14px; font: 600 13px 'Rajdhani', sans-serif; letter-spacing: 1px; }
+  #resetCfg:hover:not(:disabled) { color: #fff; border-color: var(--a1); }
+  .help { color: var(--dim); font-size: 15px; line-height: 2; }
+  kbd { font-family: 'Rajdhani', sans-serif; font-weight: 700; background: linear-gradient(180deg, #2a2f66, #14173a); border: 1px solid var(--edge); border-bottom-width: 3px; border-radius: 6px; padding: 1px 8px; margin: 0 2px; color: #fff; }
+  .card::-webkit-scrollbar { width: 8px; } .card::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 99px; }
+  @media (max-width: 520px) { .card { padding: 22px 18px; } .row { flex-direction: column; align-items: stretch; gap: 6px; } .row > label { flex: none; } input[type=text] { width: 100%; box-sizing: border-box; margin-bottom: 8px; } .big { margin-left: 0; width: 100%; } }
+  #join { align-items: flex-start; justify-content: center; padding: 12px; box-sizing: border-box; }
+  .card { margin: auto; max-height: none; overflow: visible; }
 </style>
 </head>
 <body>
@@ -50,7 +115,7 @@
 <div id="join">
   <div class="card">
     <h1>NEON ARENA</h1>
-    <div class="sub">LAN team battle &middot; Red vs Blue</div>
+    <div class="sub">Team battle &middot; Red vs Blue</div>
 
     <form id="form">
       <input type="text" id="name" maxlength="14" placeholder="Your name" autofocus><button class="big">PLAY</button>
@@ -103,6 +168,7 @@ const input = { up: false, down: false, left: false, right: false, shoot: false,
 let mouse = { x: 0, y: 0 }, view = { s: 1, ox: 0, oy: 0 }, showBoard = false;
 
 const $ = id => document.getElementById(id);
+try { document.fonts.load('700 20px Rajdhani'); document.fonts.load('600 20px Rajdhani'); } catch {}
 const nameEl = $('name');
 try { nameEl.value = localStorage.getItem('arenaName') || ''; } catch {}
 
@@ -422,7 +488,7 @@ function draw(dt, now, dpr) {
       ctx.beginPath(); ctx.arc(z.x, z.y, zr - 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * z.progress); ctx.stroke();
       ctx.shadowBlur = 0; ctx.lineCap = 'butt';
     }
-    ctx.textAlign = 'center'; ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'center'; ctx.font = 'bold 13px Rajdhani, system-ui';
     ctx.fillStyle = z.contested ? '#ffd400' : '#ffffffcc';
     ctx.fillText(z.contested ? 'CONTESTED' : 'CAPTURE ZONE', z.x, z.y - zr - 10);
     ctx.restore();
@@ -517,7 +583,7 @@ function draw(dt, now, dpr) {
     ctx.fillStyle = '#000000aa'; ctx.beginPath(); ctx.roundRect(bx - 1, by - 1, bw + 2, 8, 4); ctx.fill();
     ctx.fillStyle = p.hp > 50 ? '#7cff4f' : p.hp > 25 ? '#ffd400' : '#ff5252';
     ctx.beginPath(); ctx.roundRect(bx, by, Math.max(2, bw * p.hp / 100), 6, 3); ctx.fill();
-    ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+    ctx.font = 'bold 14px Rajdhani, system-ui'; ctx.textAlign = 'center';
     ctx.lineWidth = 3; ctx.strokeStyle = '#000000bb'; ctx.strokeText(p.id === myId ? p.name + ' (you)' : p.name, d.x, d.y - R - 22);
     ctx.fillStyle = p.id === myId ? '#fff' : p.color;
     ctx.fillText(p.id === myId ? p.name + ' (you)' : p.name, d.x, d.y - R - 22);
@@ -542,11 +608,11 @@ function draw(dt, now, dpr) {
     const pg = ctx.createLinearGradient(0, 8, 0, 52); pg.addColorStop(0, '#1a2050ee'); pg.addColorStop(1, '#0a0d26ee');
     ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(cx - 130, 8, 260, 44, 12); ctx.fill();
     ctx.strokeStyle = '#3a44a0'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.font = 'bold 26px system-ui';
+    ctx.font = 'bold 26px Rajdhani, system-ui';
     ctx.fillStyle = '#ff3d5a'; ctx.textAlign = 'right'; ctx.fillText(`RED ${ts.red}`, cx - 14, 40);
     ctx.fillStyle = '#8a93c9'; ctx.textAlign = 'center'; ctx.fillText(':', cx, 39);
     ctx.fillStyle = '#2f9bff'; ctx.textAlign = 'left'; ctx.fillText(`${ts.blue} BLUE`, cx + 14, 40);
-    ctx.textAlign = 'center'; ctx.font = '13px system-ui'; ctx.fillStyle = me ? me.color : '#8a93c9';
+    ctx.textAlign = 'center'; ctx.font = '13px Rajdhani, system-ui'; ctx.fillStyle = me ? me.color : '#8a93c9';
     ctx.fillText(`${me ? 'You are on ' + me.team.toUpperCase() + '  ·  ' : ''}${state.mode === 'zone' ? 'ZONE BATTLE' : 'TEAM DEATHMATCH'}${state.limit ? '  ·  FIRST TO ' + state.limit : ''}  ·  Esc = dashboard`, cx, 70);
   }
 
@@ -558,30 +624,44 @@ function draw(dt, now, dpr) {
     ctx.strokeStyle = '#3a44a0'; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.save(); ctx.shadowColor = hc; ctx.shadowBlur = 12; ctx.fillStyle = hc;
     ctx.beginPath(); ctx.roundRect(bx, by, Math.max(4, bw * f), 18, 7); ctx.fill(); ctx.restore();
-    ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#04060f';
+    ctx.font = 'bold 13px Rajdhani, system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#04060f';
     ctx.fillText(Math.ceil(me.hp) + ' HP', innerWidth / 2, by + 14);
   }
 
-  // mini scoreboard (grouped by team)
-  ctx.textAlign = 'right'; ctx.font = 'bold 15px system-ui';
-  const mini = [...sorted].sort((a, b) => (a.team > b.team) - (a.team < b.team) || b.score - a.score);
-  mini.slice(0, 10).forEach((p, i) => {
-    ctx.fillStyle = p.id === myId ? '#fff' : p.color;
-    ctx.fillText(`${p.name}  ${p.score}`, innerWidth - 16, 30 + i * 22);
-  });
+  // mini scoreboard (grouped by team) on a glass panel
+  {
+    const mini = [...sorted].sort((a, b) => (a.team > b.team) - (a.team < b.team) || b.score - a.score).slice(0, 10);
+    if (mini.length) {
+      ctx.fillStyle = 'rgba(10,12,34,0.62)'; ctx.beginPath(); ctx.roundRect(innerWidth - 200, 12, 188, mini.length * 24 + 14, 12); ctx.fill();
+      ctx.strokeStyle = 'rgba(150,160,255,0.3)'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.font = '700 16px Rajdhani, system-ui';
+      mini.forEach((p, i) => {
+        const y = 36 + i * 24;
+        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(innerWidth - 186, y - 5, 4, 0, 7); ctx.fill();
+        ctx.textAlign = 'left'; ctx.fillStyle = p.id === myId ? '#fff' : '#cfd6ff'; ctx.fillText(p.name.slice(0, 11), innerWidth - 176, y);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText(p.score, innerWidth - 22, y);
+      });
+    }
+  }
 
-  // kill feed
-  ctx.textAlign = 'left'; ctx.font = '15px system-ui';
+  // kill feed (pill per line)
+  ctx.textAlign = 'left'; ctx.font = '600 16px Rajdhani, system-ui';
   const t = performance.now();
   while (feed.length && t - feed[0].at > 5000) feed.shift();
   feed.slice(-6).forEach((e, i) => {
-    const y = 30 + i * 22; let x = 16;
-    const part = (txt, col) => { ctx.fillStyle = col; ctx.fillText(txt, x, y); x += ctx.measureText(txt).width; };
-    if (e.kind === 'kill') { part(e.killer, e.kc); part('  ⟶  ', '#ff3d81'); part(e.victim, e.vc); }
-    else if (e.kind === 'capture') part(`${e.name} captured the zone!  +${e.points}`, e.color);
-    else if (e.kind === 'settings') part('Host changed the game settings', '#ffd400');
-    else if (e.kind === 'win') part(`${e.name} wins the match!`, e.color);
-    else part(`${e.name} ${e.kind === 'join' ? 'joined ' + e.team.toUpperCase() : 'left'}`, e.color);
+    const y = 34 + i * 28; let x = 18;
+    let parts;
+    if (e.kind === 'kill') parts = [[e.killer, e.kc], ['  \u27F6  ', '#ff3d81'], [e.victim, e.vc]];
+    else if (e.kind === 'capture') parts = [[`${e.name} captured the zone!  +${e.points}`, e.color]];
+    else if (e.kind === 'settings') parts = [['Host changed the game settings', '#ffd400']];
+    else if (e.kind === 'win') parts = [[`${e.name} wins the match!`, e.color]];
+    else parts = [[`${e.name} ${e.kind === 'join' ? 'joined ' + e.team.toUpperCase() : 'left'}`, e.color]];
+    const wTot = parts.reduce((s, p) => s + ctx.measureText(p[0]).width, 0), age = (t - e.at) / 1000;
+    ctx.globalAlpha = age > 4 ? Math.max(0, 5 - age) : 1;
+    ctx.fillStyle = 'rgba(10,12,34,0.62)'; ctx.beginPath(); ctx.roundRect(x - 10, y - 18, wTot + 20, 25, 10); ctx.fill();
+    ctx.strokeStyle = 'rgba(150,160,255,0.25)'; ctx.lineWidth = 1.2; ctx.stroke();
+    for (const [txt, col] of parts) { ctx.fillStyle = col; ctx.fillText(txt, x, y); x += ctx.measureText(txt).width; }
+    ctx.globalAlpha = 1;
   });
 
   // winner screen (the match is frozen while it is up)
@@ -590,19 +670,19 @@ function draw(dt, now, dpr) {
     const ts = state.teamScores;
     ctx.fillStyle = '#05060dcc'; ctx.fillRect(0, 0, innerWidth, innerHeight);
     ctx.textAlign = 'center';
-    ctx.shadowColor = col; ctx.shadowBlur = 30; ctx.fillStyle = col; ctx.font = 'bold 56px system-ui';
+    ctx.shadowColor = col; ctx.shadowBlur = 30; ctx.fillStyle = col; ctx.font = 'bold 56px Rajdhani, system-ui';
     ctx.fillText(`${m.winner.toUpperCase()} TEAM WINS!`, cx, cy - 50);
     ctx.shadowBlur = 0;
     if (me) {
       const won = me.team === m.winner;
-      ctx.font = 'bold 26px system-ui'; ctx.fillStyle = won ? '#7cff4f' : '#ff8a8a';
+      ctx.font = 'bold 26px Rajdhani, system-ui'; ctx.fillStyle = won ? '#7cff4f' : '#ff8a8a';
       ctx.fillText(won ? 'VICTORY' : 'DEFEAT', cx, cy - 10);
     }
-    ctx.font = 'bold 34px system-ui';
+    ctx.font = 'bold 34px Rajdhani, system-ui';
     ctx.fillStyle = '#ff3d5a'; ctx.textAlign = 'right'; ctx.fillText(`RED ${ts.red}`, cx - 16, cy + 45);
     ctx.fillStyle = '#8a93c9'; ctx.textAlign = 'center'; ctx.fillText(':', cx, cy + 44);
     ctx.fillStyle = '#2f9bff'; ctx.textAlign = 'left'; ctx.fillText(`${ts.blue} BLUE`, cx + 16, cy + 45);
-    ctx.textAlign = 'center'; ctx.font = '18px system-ui';
+    ctx.textAlign = 'center'; ctx.font = '18px Rajdhani, system-ui';
     if (m.mvp) { ctx.fillStyle = m.mvp.team === 'red' ? '#ff3d5a' : '#2f9bff'; ctx.fillText(`MVP: ${m.mvp.name}  (${m.mvp.score} kills)`, cx, cy + 85); }
     ctx.fillStyle = '#e8ecff'; ctx.fillText(`Next match starts in ${Math.ceil(m.restartIn)}s`, cx, cy + 120);
   }
@@ -610,9 +690,9 @@ function draw(dt, now, dpr) {
   // death overlay
   if (me && !me.alive && !state.match) {
     ctx.fillStyle = '#000000aa'; ctx.fillRect(0, innerHeight / 2 - 50, innerWidth, 100);
-    ctx.textAlign = 'center'; ctx.fillStyle = '#ff3d81'; ctx.font = 'bold 40px system-ui';
+    ctx.textAlign = 'center'; ctx.fillStyle = '#ff3d81'; ctx.font = 'bold 40px Rajdhani, system-ui';
     ctx.fillText('ELIMINATED', innerWidth / 2, innerHeight / 2 + 2);
-    ctx.fillStyle = '#e8ecff'; ctx.font = '18px system-ui';
+    ctx.fillStyle = '#e8ecff'; ctx.font = '18px Rajdhani, system-ui';
     ctx.fillText(`Respawning in ${me.respawn.toFixed(1)}s`, innerWidth / 2, innerHeight / 2 + 32);
   }
 
@@ -625,7 +705,7 @@ function draw(dt, now, dpr) {
     const w = 420, h = 70 + rows.length * 30, x = (innerWidth - w) / 2, y = (innerHeight - h) / 2;
     ctx.fillStyle = '#0d1028ee'; ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = '#2a3170'; ctx.strokeRect(x, y, w, h);
-    ctx.font = 'bold 16px system-ui'; ctx.fillStyle = '#8a93c9';
+    ctx.font = 'bold 16px Rajdhani, system-ui'; ctx.fillStyle = '#8a93c9';
     ctx.textAlign = 'left'; ctx.fillText('PLAYER', x + 20, y + 34);
     ctx.textAlign = 'right'; ctx.fillText('KILLS', x + w - 110, y + 34); ctx.fillText('DEATHS', x + w - 20, y + 34);
     rows.forEach((p, i) => {
