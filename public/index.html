@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon Arena</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #07080f; color: #e8ecff; font-family: system-ui, Segoe UI, sans-serif; overflow: hidden; }
+  canvas { display: block; cursor: crosshair; }
+  #join { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 40%, #151a3a, #07080f 70%); overflow: auto; }
+  .card { width: 540px; max-width: calc(100vw - 24px); max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box; text-align: center; padding: 28px 34px; margin: 12px; border: 1px solid #2a3170; border-radius: 16px; background: #0d1028cc; box-shadow: 0 0 60px #00e5ff22; }
+  h1 { margin: 0 0 4px; font-size: 46px; letter-spacing: 6px; color: #00e5ff; text-shadow: 0 0 18px #00e5ff, 0 0 40px #ff3d8155; }
+  .sub { color: #8a93c9; margin-bottom: 20px; }
+  input[type=text] { font-size: 20px; padding: 12px 16px; border-radius: 10px; border: 1px solid #2a3170; background: #070918; color: #fff; width: 220px; outline: none; text-align: center; }
+  input[type=text]:focus { border-color: #00e5ff; box-shadow: 0 0 12px #00e5ff55; }
+  .big { margin-left: 8px; font-size: 20px; padding: 12px 22px; border: 0; border-radius: 10px; background: #ff3d81; color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 0 18px #ff3d8188; }
+  .big:hover { filter: brightness(1.15); }
+  #resume { display: none; margin: 0 auto 6px; }
+  .teams { margin-top: 14px; display: flex; gap: 8px; justify-content: center; align-items: center; color: #8a93c9; }
+  .teams label { cursor: pointer; }
+  .teams input { display: none; }
+  .teams span { display: inline-block; padding: 8px 16px; border-radius: 8px; border: 1px solid #2a3170; color: #cfd5ff; font-weight: 600; }
+  .teams input:checked + span { border-color: currentColor; box-shadow: 0 0 10px currentColor; }
+  .teams .red span { color: #ff3d5a; } .teams .blue span { color: #2f9bff; } .teams .auto span { color: #e8ecff; }
+  #status { margin-top: 10px; color: #ffd400; min-height: 18px; }
+
+  #cfgBox { margin-top: 14px; text-align: left; border: 1px solid #232a63; border-radius: 12px; background: #080b1f99; padding: 4px 16px 14px; }
+  #cfgBox summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: #00e5ff; letter-spacing: 1px; }
+  #hostNote { font-size: 13px; color: #ffd400; margin-bottom: 8px; min-height: 16px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; }
+  .row > label { color: #aab3ea; font-size: 14px; flex: 0 0 150px; }
+  .seg { display: flex; gap: 6px; flex: 1; }
+  .seg button { flex: 1; padding: 8px 6px; border-radius: 8px; border: 1px solid #2a3170; background: #0b0f2a; color: #cfd5ff; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .seg button.on { border-color: #00e5ff; color: #00e5ff; box-shadow: 0 0 10px #00e5ff44; background: #0c1a33; }
+  .seg button:disabled { opacity: .45; cursor: not-allowed; }
+  .slider { flex: 1; display: flex; align-items: center; gap: 10px; }
+  .slider input { flex: 1; accent-color: #00e5ff; }
+  .slider output { width: 62px; text-align: right; font-variant-numeric: tabular-nums; color: #fff; font-weight: 700; font-size: 14px; }
+  .row.dim { opacity: .4; }
+  .grp { margin: 14px 0 2px; font-size: 12px; letter-spacing: 2px; color: #6f7dff; text-transform: uppercase; }
+  #resetCfg { margin-top: 6px; background: transparent; border: 1px solid #2a3170; color: #8a93c9; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+  #resetCfg:disabled { opacity: .4; cursor: not-allowed; }
+
+  .help { margin-top: 16px; color: #8a93c9; font-size: 13px; line-height: 1.7; }
+  kbd { background: #1b2050; padding: 2px 7px; border-radius: 5px; border: 1px solid #333a80; color: #fff; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="join">
+  <div class="card">
+    <h1>NEON ARENA</h1>
+    <div class="sub">LAN team battle &middot; Red vs Blue</div>
+
+    <form id="form">
+      <input type="text" id="name" maxlength="14" placeholder="Your name" autofocus><button class="big">PLAY</button>
+      <div class="teams">Team:
+        <label class="auto"><input type="radio" name="team" value="auto" checked><span>Auto</span></label>
+        <label class="red"><input type="radio" name="team" value="red"><span>Red</span></label>
+        <label class="blue"><input type="radio" name="team" value="blue"><span>Blue</span></label>
+      </div>
+    </form>
+    <button class="big" id="resume" type="button">RESUME</button>
+    <div id="status"></div>
+
+    <details id="cfgBox" open>
+      <summary>&#9881; DASHBOARD &middot; Game settings</summary>
+      <div id="hostNote"></div>
+
+      <div class="row"><label>Play style</label>
+        <div class="seg" id="segPlay"><button type="button" data-v="multi">Multiplayer</button><button type="button" data-v="solo">Solo vs bots</button></div></div>
+      <div class="row"><label>Team mode</label>
+        <div class="seg" id="segMode"><button type="button" data-v="zone">Zone Battle</button><button type="button" data-v="tdm">Team Deathmatch</button></div></div>
+
+      <div class="grp">Match</div>
+      <div id="sl-match"></div>
+      <div class="grp">Player</div>
+      <div id="sl-player"></div>
+      <div class="grp" id="zoneGrp">Capture zone</div>
+      <div id="sl-zone"></div>
+      <div id="botsBox">
+        <div class="grp">Solo / bots</div>
+        <div id="sl-bots"></div>
+        <div class="row"><label>Bot difficulty</label>
+          <div class="seg" id="segDiff"><button type="button" data-v="easy">Easy</button><button type="button" data-v="normal">Normal</button><button type="button" data-v="hard">Hard</button></div></div>
+      </div>
+      <button type="button" id="resetCfg">Reset to defaults</button>
+    </details>
+
+    <div class="help">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &nbsp;&middot;&nbsp; <b>Mouse</b> aim &nbsp;&middot;&nbsp; <b>Click / Space / Ctrl</b> shoot &nbsp;&middot;&nbsp; <kbd>Tab</kbd> scoreboard &nbsp;&middot;&nbsp; <kbd>Esc</kbd> dashboard<br>
+      Your team is locked for the match. Bullets bounce once off walls and never hurt you or your team.<br>
+      <b>Zone Battle:</b> hold the glowing circle with no enemy inside to capture it. <b>Team Deathmatch:</b> most kills wins.
+    </div>
+  </div>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let ws, myId = null, world = null, state = null, lastStateAt = 0, menuOpen = true;
+const disp = new Map(); // smoothed player positions
+const feed = [];
+const input = { up: false, down: false, left: false, right: false, shoot: false, a: 0 };
+let mouse = { x: 0, y: 0 }, view = { s: 1, ox: 0, oy: 0 }, showBoard = false;
+
+const $ = id => document.getElementById(id);
+const nameEl = $('name');
+try { nameEl.value = localStorage.getItem('arenaName') || ''; } catch {}
+
+// ---------- Dashboard (settings) ----------
+// owner of an online server opens the game once with ?admin=KEY to get the host settings
+function adminHeaders() {
+  let k = '';
+  try { const q = new URLSearchParams(location.search).get('admin'); if (q) sessionStorage.setItem('adminKey', q); k = sessionStorage.getItem('adminKey') || ''; } catch {}
+  return k ? { 'X-Admin-Key': k } : {};
+}
+let cfg = null, isHost = false, limits = {}, defaults = {};
+const SLIDERS = [
+  { k: 'scoreLimit', label: 'Win at points (team)', unit: '', box: 'sl-match', step: 5, off: 'Off' },
+  { k: 'playerSpeed', label: 'Player speed', unit: '', box: 'sl-player' },
+  { k: 'zoneBoost', label: 'Speed boost in zone', unit: '%', box: 'sl-zone', zone: true },
+  { k: 'captureTime', label: 'Capture time', unit: 's', box: 'sl-zone', zone: true },
+  { k: 'zoneRadius', label: 'Zone size', unit: 'px', box: 'sl-zone', zone: true },
+  { k: 'zonePoints', label: 'Points per capture', unit: '', box: 'sl-zone', zone: true },
+  { k: 'bots', label: 'Number of bots', unit: '', box: 'sl-bots' },
+];
+const sliderEls = {};
+const fmt = (s, v) => (v === 0 && s.off) ? s.off : v + s.unit;
+function buildSliders() {
+  for (const s of SLIDERS) {
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<label>${s.label}</label><div class="slider"><input type="range"><output></output></div>`;
+    $(s.box).appendChild(row);
+    const range = row.querySelector('input'), out = row.querySelector('output');
+    if (s.step) range.step = s.step;
+    range.addEventListener('input', () => { out.textContent = fmt(s, +range.value); pushCfg({ [s.k]: +range.value }); });
+    sliderEls[s.k] = { row, range, out, s };
+  }
+}
+buildSliders();
+
+function renderCfg() {
+  if (!cfg) return;
+  for (const k in sliderEls) {
+    const { row, range, out, s } = sliderEls[k];
+    const [lo, hi] = limits[k] || [0, 100];
+    range.min = k === 'bots' ? 1 : lo; range.max = hi;
+    if (document.activeElement !== range) range.value = cfg[k];
+    out.textContent = fmt(s, cfg[k]);
+    range.disabled = !isHost || (s.zone && cfg.mode !== 'zone');
+    row.classList.toggle('dim', !!(s.zone && cfg.mode !== 'zone'));
+  }
+  const solo = cfg.bots > 0;
+  const mark = (seg, v) => document.querySelectorAll(`#${seg} button`).forEach(b => { b.classList.toggle('on', b.dataset.v === v); b.disabled = !isHost; });
+  mark('segPlay', solo ? 'solo' : 'multi'); mark('segMode', cfg.mode); mark('segDiff', cfg.difficulty);
+  $('botsBox').style.display = solo ? '' : 'none';
+  $('zoneGrp').style.opacity = cfg.mode === 'zone' ? 1 : .4;
+  $('resetCfg').disabled = !isHost;
+  $('hostNote').textContent = isHost ? '' : 'Only the host PC can change these. You are seeing the current settings.';
+}
+let saveTimer = null, pendingSave = false, cfgVersion = 0;
+async function loadCfg() {
+  if (pendingSave) return; // never let a refresh overwrite a change that has not been saved yet
+  const ver = cfgVersion;
+  try {
+    const j = await (await fetch('/api/settings', { cache: 'no-store', headers: adminHeaders() })).json();
+    if (pendingSave || ver !== cfgVersion) return; // user changed something while we were fetching
+    cfg = j.settings; isHost = j.isHost; limits = j.limits; defaults = j.defaults;
+    renderCfg();
+  } catch {}
+}
+function pushCfg(patch) {
+  if (!cfg || !isHost) return;
+  Object.assign(cfg, patch);
+  cfgVersion++; pendingSave = true;
+  renderCfg();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const v = cfgVersion;
+    try {
+      const r = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json', ...adminHeaders() }, body: JSON.stringify(cfg) });
+      if (r.ok && v === cfgVersion) { const j = await r.json(); cfg = j.settings; isHost = j.isHost; }
+    } catch {}
+    if (v === cfgVersion) pendingSave = false; // a newer change is still waiting to be saved otherwise
+    renderCfg();
+  }, 150);
+}
+document.querySelectorAll('#segPlay button').forEach(b => b.onclick = () => pushCfg({ bots: b.dataset.v === 'solo' ? (cfg.bots > 0 ? cfg.bots : 5) : 0 }));
+document.querySelectorAll('#segMode button').forEach(b => b.onclick = () => pushCfg({ mode: b.dataset.v }));
+document.querySelectorAll('#segDiff button').forEach(b => b.onclick = () => pushCfg({ difficulty: b.dataset.v }));
+$('resetCfg').onclick = () => pushCfg({ ...defaults });
+loadCfg();
+setInterval(() => { if (menuOpen && !(document.activeElement && document.activeElement.type === 'range')) loadCfg(); }, 2000);
+
+function setMenu(open) {
+  menuOpen = open;
+  $('join').style.display = open ? 'flex' : 'none';
+  $('form').style.display = myId ? 'none' : '';
+  $('resume').style.display = myId ? 'block' : 'none';
+  if (open) { for (const k in input) if (k !== 'a') input[k] = false; loadCfg(); }
+}
+$('resume').onclick = () => setMenu(false);
+
+// ---------- Connect ----------
+$('form').onsubmit = e => {
+  e.preventDefault();
+  const name = nameEl.value.trim() || 'Player';
+  const team = document.querySelector('input[name=team]:checked').value;
+  try { localStorage.setItem('arenaName', name); localStorage.setItem('arenaTeam', team); } catch {}
+  connect(name, team);
+};
+try {
+  const saved = localStorage.getItem('arenaTeam');
+  const el = saved && document.querySelector(`input[name=team][value=${saved}]`);
+  if (el) el.checked = true;
+} catch {}
+
+function connect(name, team) {
+  const status = $('status');
+  status.textContent = 'Connecting...';
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+  ws.onopen = () => ws.send(JSON.stringify({ t: 'join', name, team }));
+  ws.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if (m.t === 'welcome') { myId = m.id; world = m; status.textContent = ''; setMenu(false); }
+    else if (m.t === 'state') {
+      processState(m);
+      state = m; lastStateAt = performance.now();
+      for (const e of m.events) feed.push({ ...e, at: performance.now() });
+    }
+  };
+  ws.onclose = () => {
+    myId = null; state = null;
+    setMenu(true);
+    status.textContent = 'Disconnected from server. Is it still running?';
+  };
+}
+
+// ---------- Input ----------
+const KEYS = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right', Space: 'shoot', ControlLeft: 'shoot', ControlRight: 'shoot' };
+addEventListener('keydown', e => {
+  if (e.code === 'Escape' && myId) { setMenu(!menuOpen); return; }
+  if (!myId || menuOpen) return;
+  if (e.code === 'Tab') { showBoard = true; e.preventDefault(); return; }
+  if (KEYS[e.code]) { input[KEYS[e.code]] = true; e.preventDefault(); }
+});
+addEventListener('keyup', e => {
+  if (e.code === 'Tab') { showBoard = false; return; }
+  if (KEYS[e.code]) input[KEYS[e.code]] = false;
+});
+addEventListener('blur', () => { for (const k in input) if (k !== 'a') input[k] = false; });
+cv.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+cv.addEventListener('mousedown', () => input.shoot = true);
+addEventListener('mouseup', () => input.shoot = false);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+setInterval(() => {
+  if (!ws || ws.readyState !== 1 || !myId) return;
+  const me = disp.get(myId);
+  if (me) {
+    const wx = (mouse.x - view.ox) / view.s, wy = (mouse.y - view.oy) / view.s;
+    input.a = Math.atan2(wy - me.y, wx - me.x);
+  }
+  ws.send(JSON.stringify({ t: 'input', ...input }));
+}, 1000 / 30);
+
+// ---------- Render ----------
+let vignette = null, bgCache = null, bgKey = '', shake = 0, hurt = 0;
+function resize() { cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; vignette = null; }
+addEventListener('resize', resize); resize();
+
+// --- effects state ---
+const parts = [];                       // particles
+const prevBullets = new Map();          // id -> last seen bullet
+const prevAlive = new Map();            // player id -> alive
+const prevHp = new Map();
+let lastZone = null;
+const rnd = (a, b) => a + Math.random() * (b - a);
+function burst(x, y, color, n, speed, life, size) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = rnd(0.25, 1) * speed;
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rnd(0.5, 1) * life, max: life, color, size: rnd(0.6, 1) * size, drag: 2.2 });
+  }
+}
+function ring(x, y, color, r0, r1, life) { parts.push({ ring: true, x, y, color, r0, r1, life, max: life }); }
+
+// Called for every server snapshot: turns changes into visual effects.
+function processState(m) {
+  const ids = new Set();
+  for (const b of m.bullets) {
+    const [id, x, y, vx, vy, color] = b; ids.add(id);
+    const old = prevBullets.get(id);
+    if (!old) { burst(x, y, color, 5, 160, 0.25, 3); ring(x, y, color, 3, 14, 0.18); }
+    else if (Math.sign(old.vx) !== Math.sign(vx) || Math.sign(old.vy) !== Math.sign(vy)) burst(x, y, color, 8, 200, 0.3, 2.5);
+    prevBullets.set(id, { x, y, vx, vy, color });
+  }
+  for (const [id, o] of prevBullets) if (!ids.has(id)) { burst(o.x + o.vx * 0.02, o.y + o.vy * 0.02, o.color, 9, 230, 0.35, 2.6); prevBullets.delete(id); }
+
+  for (const p of m.players) {
+    const was = prevAlive.get(p.id), hp = prevHp.get(p.id);
+    if (was && !p.alive) {
+      const d = disp.get(p.id) || p;
+      burst(d.x, d.y, p.color, 36, 340, 0.8, 4.5); burst(d.x, d.y, '#ffffff', 12, 260, 0.45, 3);
+      ring(d.x, d.y, p.color, 10, 90, 0.5);
+      if (p.id === myId) shake = Math.max(shake, 14);
+      else shake = Math.max(shake, 3);
+    } else if (was === false && p.alive) ring(p.x, p.y, p.color, 70, 12, 0.5);
+    if (p.id === myId && hp !== undefined && p.hp < hp && p.alive) { shake = Math.max(shake, 6); hurt = 1; }
+    prevAlive.set(p.id, p.alive); prevHp.set(p.id, p.hp);
+  }
+  for (const id of [...prevAlive.keys()]) if (!m.players.some(p => p.id === id)) { prevAlive.delete(id); prevHp.delete(id); }
+  for (const e of m.events) if (e.kind === 'capture' && lastZone) {
+    burst(lastZone.x, lastZone.y, e.color, 60, 420, 1.0, 5); ring(lastZone.x, lastZone.y, e.color, 20, lastZone.r * 1.3, 0.9);
+  }
+  lastZone = m.zone ? { x: m.zone.x, y: m.zone.y, r: m.zone.r } : null;
+}
+
+// Static arena art (floor, walls with glow) drawn ONCE into an offscreen canvas.
+function buildBg(sc) {
+  const W = world.W, H = world.H;
+  const c = document.createElement('canvas'); c.width = Math.ceil(W * sc); c.height = Math.ceil(H * sc);
+  const g = c.getContext('2d'); g.scale(sc, sc);
+  let gr = g.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, Math.max(W, H) * 0.72);
+  gr.addColorStop(0, '#141a45'); gr.addColorStop(0.6, '#0b0f2c'); gr.addColorStop(1, '#060818');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  // team spawn sides
+  gr = g.createLinearGradient(0, 0, W * 0.34, 0); gr.addColorStop(0, '#ff3d5a38'); gr.addColorStop(1, '#ff3d5a00');
+  g.fillStyle = gr; g.fillRect(0, 0, W * 0.34, H);
+  gr = g.createLinearGradient(W, 0, W * 0.66, 0); gr.addColorStop(0, '#2f9bff38'); gr.addColorStop(1, '#2f9bff00');
+  g.fillStyle = gr; g.fillRect(W * 0.66, 0, W * 0.34, H);
+  // floor tiles: faint checker + grid lines + glowing nodes
+  g.fillStyle = '#ffffff05';
+  for (let x = 0; x < W; x += 50) for (let y = 0; y < H; y += 50) if (((x + y) / 50) % 2 === 0) g.fillRect(x, y, 50, 50);
+  g.strokeStyle = '#27308a55'; g.lineWidth = 1; g.beginPath();
+  for (let x = 0; x <= W; x += 50) { g.moveTo(x, 0); g.lineTo(x, H); }
+  for (let y = 0; y <= H; y += 50) { g.moveTo(0, y); g.lineTo(W, y); }
+  g.stroke();
+  g.fillStyle = '#5b6cff66';
+  for (let x = 0; x <= W; x += 50) for (let y = 0; y <= H; y += 50) g.fillRect(x - 1.5, y - 1.5, 3, 3);
+  // centre markings
+  g.strokeStyle = '#6f7dff44'; g.lineWidth = 2; g.setLineDash([12, 10]);
+  g.beginPath(); g.moveTo(W / 2, 0); g.lineTo(W / 2, H); g.stroke(); g.setLineDash([]);
+  g.beginPath(); g.arc(W / 2, H / 2, 90, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(W / 2, H / 2, 10, 0, Math.PI * 2); g.stroke();
+  // spawn pads
+  for (const [cx, col] of [[W * 0.07, '#ff3d5a'], [W * 0.93, '#2f9bff']]) {
+    g.strokeStyle = col + '55'; g.lineWidth = 2;
+    for (let r = 30; r <= 90; r += 30) { g.beginPath(); g.arc(cx, H / 2, r, 0, Math.PI * 2); g.stroke(); }
+  }
+  // wall drop shadows
+  g.fillStyle = '#00000088';
+  for (const [x, y, w, h] of world.walls) g.fillRect(x + 6, y + 9, w, h);
+  // wall glow
+  g.save(); g.shadowColor = '#5b6cff'; g.shadowBlur = 26; g.fillStyle = '#1a2058';
+  for (const [x, y, w, h] of world.walls) g.fillRect(x, y, w, h);
+  g.restore();
+  // wall bodies: gradient + bevel + top shine + rivets
+  for (const [x, y, w, h] of world.walls) {
+    gr = g.createLinearGradient(x, y, x + w * 0.6, y + h);
+    gr.addColorStop(0, '#2b3590'); gr.addColorStop(1, '#141a50');
+    g.fillStyle = gr; g.fillRect(x, y, w, h);
+    g.fillStyle = '#ffffff1c'; g.fillRect(x, y, w, Math.min(5, h)); g.fillRect(x, y, Math.min(5, w), h);
+    g.fillStyle = '#00000044'; g.fillRect(x, y + h - 5, w, 5); g.fillRect(x + w - 5, y, 5, h);
+    g.strokeStyle = '#8c98ff'; g.lineWidth = 2; g.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    g.fillStyle = '#aab3ff';
+    for (const [rx, ry] of [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]) if (w > 24 && h > 24) { g.beginPath(); g.arc(rx, ry, 1.8, 0, Math.PI * 2); g.fill(); }
+  }
+  // arena border: glow + double line
+  g.save(); g.shadowColor = '#6f7dff'; g.shadowBlur = 22; g.strokeStyle = '#6f7dff'; g.lineWidth = 5; g.strokeRect(2.5, 2.5, W - 5, H - 5); g.restore();
+  g.strokeStyle = '#c7ceff'; g.lineWidth = 1.5; g.strokeRect(7, 7, W - 14, H - 14);
+  return c;
+}
+
+let lastFrame = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
+  const dpr = devicePixelRatio;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#05060f'; ctx.fillRect(0, 0, cv.width, cv.height);
+  if (world && state) draw(dt, now, dpr);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function glow(x, y, r, color, a) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, color + a); g.addColorStop(1, color + '00');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+}
+
+function draw(dt, now, dpr) {
+  const pad = 20;
+  const s = Math.min((innerWidth - pad * 2) / world.W, (innerHeight - pad * 2) / world.H);
+  view = { s, ox: (innerWidth - world.W * s) / 2, oy: (innerHeight - world.H * s) / 2 };
+  shake = Math.max(0, shake - dt * 40);
+  const sx = shake ? rnd(-shake, shake) : 0, sy = shake ? rnd(-shake, shake) : 0;
+  ctx.setTransform(s * dpr, 0, 0, s * dpr, (view.ox + sx) * dpr, (view.oy + sy) * dpr);
+
+  const key = (s * dpr).toFixed(3) + '|' + world.walls.length + '|' + world.W;
+  if (key !== bgKey) { bgCache = buildBg(Math.min(s * dpr, 2.5)); bgKey = key; }
+  ctx.drawImage(bgCache, 0, 0, world.W, world.H);
+
+  // capture zone: ring fills while one team holds it alone (Zone Battle only)
+  const z = state.zone;
+  if (z) {
+    const col = z.color || '#ffffff', zr = z.r, pulse = 1 + Math.sin(now / 300) * 0.015;
+    ctx.save();
+    const zg = ctx.createRadialGradient(z.x, z.y, zr * 0.1, z.x, z.y, zr * pulse);
+    zg.addColorStop(0, col + '08'); zg.addColorStop(0.75, col + '22'); zg.addColorStop(1, col + '44');
+    ctx.fillStyle = zg; ctx.beginPath(); ctx.arc(z.x, z.y, zr * pulse, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = z.contested ? '#ffd400' : col + 'aa';
+    ctx.setLineDash(z.contested ? [14, 10] : []);
+    ctx.beginPath(); ctx.arc(z.x, z.y, zr, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    // rotating tick marks
+    ctx.strokeStyle = col + '88'; ctx.lineWidth = 2;
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24 * Math.PI * 2 + now / 2500;
+      ctx.beginPath(); ctx.moveTo(z.x + Math.cos(a) * (zr - 22), z.y + Math.sin(a) * (zr - 22)); ctx.lineTo(z.x + Math.cos(a) * (zr - 14), z.y + Math.sin(a) * (zr - 14)); ctx.stroke();
+    }
+    if (z.progress > 0) {
+      ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.arc(z.x, z.y, zr - 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * z.progress); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.lineCap = 'butt';
+    }
+    ctx.textAlign = 'center'; ctx.font = 'bold 13px system-ui';
+    ctx.fillStyle = z.contested ? '#ffd400' : '#ffffffcc';
+    ctx.fillText(z.contested ? 'CONTESTED' : 'CAPTURE ZONE', z.x, z.y - zr - 10);
+    ctx.restore();
+  }
+
+  // pickups
+  world.pickups.forEach(([x, y], i) => {
+    if (!state.pickups[i]) return;
+    const pulse = 1 + Math.sin(now / 250 + i) * 0.12;
+    glow(x, y, 30 * pulse, '#7cff4f', '55');
+    ctx.save(); ctx.translate(x, y); ctx.scale(pulse, pulse);
+    ctx.fillStyle = '#0b2a10'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#7cff4f'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#7cff4f'; ctx.fillRect(-3.5, -10, 7, 20); ctx.fillRect(-10, -3.5, 20, 7);
+    ctx.restore();
+  });
+
+  // particles (additive glow)
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.life -= dt;
+    if (p.life <= 0) { parts.splice(i, 1); continue; }
+    const t = p.life / p.max;
+    if (p.ring) {
+      const r = p.r1 + (p.r0 - p.r1) * t;
+      ctx.strokeStyle = p.color; ctx.globalAlpha = t; ctx.lineWidth = 3 * t + 1;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
+      continue;
+    }
+    const k = Math.exp(-p.drag * dt);
+    p.vx *= k; p.vy *= k; p.x += p.vx * dt; p.y += p.vy * dt;
+    ctx.globalAlpha = Math.min(1, t * 1.4);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.4 + t * 0.6), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+
+  // bullets (extrapolated from last server update) with glowing trails
+  const since = (now - lastStateAt) / 1000;
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  for (const [, x, y, vx, vy, color] of state.bullets) {
+    const bx = x + vx * since, by = y + vy * since;
+    const tg = ctx.createLinearGradient(bx, by, bx - vx * 0.06, by - vy * 0.06);
+    tg.addColorStop(0, color); tg.addColorStop(1, color + '00');
+    ctx.strokeStyle = tg; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - vx * 0.06, by - vy * 0.06); ctx.stroke();
+    glow(bx, by, 16, color, '88');
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.lineCap = 'butt';
+
+  // players
+  const live = new Set();
+  for (const p of state.players) {
+    live.add(p.id);
+    let d = disp.get(p.id);
+    if (!d || !p.alive) { d = { x: p.x, y: p.y }; disp.set(p.id, d); }
+    const px = d.x, py = d.y;
+    const k = Math.min(1, dt * 18);
+    d.x += (p.x - d.x) * k; d.y += (p.y - d.y) * k;
+    if (!p.alive) continue;
+    const mv = Math.hypot(d.x - px, d.y - py);
+    if (mv > 0.6 && Math.random() < 0.7) parts.push({ x: d.x + rnd(-4, 4), y: d.y + rnd(-4, 4), vx: rnd(-20, 20), vy: rnd(-20, 20), life: 0.35, max: 0.35, color: p.color, size: rnd(2, 4), drag: 3 });
+    const angle = p.id === myId ? input.a : p.a;
+    const R = world.playerR;
+    // ground shadow + aura
+    ctx.fillStyle = '#00000066'; ctx.beginPath(); ctx.ellipse(d.x + 4, d.y + 8, R, R * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+    glow(d.x, d.y, R * 2.6, p.color, '44');
+    // gun
+    ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(angle);
+    const gg = ctx.createLinearGradient(0, -6, 0, 6); gg.addColorStop(0, p.color); gg.addColorStop(0.5, '#ffffff'); gg.addColorStop(1, p.color);
+    ctx.fillStyle = '#1a1f48'; ctx.fillRect(R - 8, -6, 22, 12);
+    ctx.fillStyle = gg; ctx.fillRect(R - 2, -3.5, 18, 7);
+    ctx.fillStyle = '#fff'; ctx.fillRect(R + 14, -2.5, 3, 5);
+    ctx.restore();
+    // body
+    const bg = ctx.createRadialGradient(d.x - R * 0.3, d.y - R * 0.3, 2, d.x, d.y, R);
+    bg.addColorStop(0, '#2b3475'); bg.addColorStop(1, '#0b0e24');
+    ctx.fillStyle = bg; ctx.strokeStyle = p.color; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(d.x, d.y, R, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#ffffff33'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(d.x, d.y, R - 5, -2.6, -0.7); ctx.stroke();
+    glow(d.x, d.y, 9, p.color, 'ff');
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(d.x, d.y, 3, 0, Math.PI * 2); ctx.fill();
+    if (p.shield) {
+      ctx.strokeStyle = '#9fdfff'; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.6 + Math.sin(now / 70) * 0.3;
+      ctx.beginPath(); ctx.arc(d.x, d.y, R + 8, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#9fdfff22'; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    // hp bar + name
+    const bw = 50, bx = d.x - bw / 2, by = d.y - R - 17;
+    ctx.fillStyle = '#000000aa'; ctx.beginPath(); ctx.roundRect(bx - 1, by - 1, bw + 2, 8, 4); ctx.fill();
+    ctx.fillStyle = p.hp > 50 ? '#7cff4f' : p.hp > 25 ? '#ffd400' : '#ff5252';
+    ctx.beginPath(); ctx.roundRect(bx, by, Math.max(2, bw * p.hp / 100), 6, 3); ctx.fill();
+    ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = '#000000bb'; ctx.strokeText(p.id === myId ? p.name + ' (you)' : p.name, d.x, d.y - R - 22);
+    ctx.fillStyle = p.id === myId ? '#fff' : p.color;
+    ctx.fillText(p.id === myId ? p.name + ' (you)' : p.name, d.x, d.y - R - 22);
+  }
+  for (const id of disp.keys()) if (!live.has(id)) disp.delete(id);
+  ctx.shadowBlur = 0;
+
+  // vignette + damage flash (screen space)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!vignette) {
+    vignette = ctx.createRadialGradient(innerWidth / 2, innerHeight / 2, Math.min(innerWidth, innerHeight) * 0.45, innerWidth / 2, innerHeight / 2, Math.hypot(innerWidth, innerHeight) * 0.6);
+    vignette.addColorStop(0, '#00000000'); vignette.addColorStop(1, '#000000bb');
+  }
+  ctx.fillStyle = vignette; ctx.fillRect(0, 0, innerWidth, innerHeight);
+  if (hurt > 0) { hurt = Math.max(0, hurt - dt * 3); ctx.fillStyle = `rgba(255,40,60,${hurt * 0.28})`; ctx.fillRect(0, 0, innerWidth, innerHeight); }
+  const me = state.players.find(p => p.id === myId);
+  const sorted = [...state.players].sort((a, b) => b.score - a.score || a.deaths - b.deaths);
+
+  // team score (top centre)
+  {
+    const cx = innerWidth / 2, ts = state.teamScores;
+    const pg = ctx.createLinearGradient(0, 8, 0, 52); pg.addColorStop(0, '#1a2050ee'); pg.addColorStop(1, '#0a0d26ee');
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(cx - 130, 8, 260, 44, 12); ctx.fill();
+    ctx.strokeStyle = '#3a44a0'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.font = 'bold 26px system-ui';
+    ctx.fillStyle = '#ff3d5a'; ctx.textAlign = 'right'; ctx.fillText(`RED ${ts.red}`, cx - 14, 40);
+    ctx.fillStyle = '#8a93c9'; ctx.textAlign = 'center'; ctx.fillText(':', cx, 39);
+    ctx.fillStyle = '#2f9bff'; ctx.textAlign = 'left'; ctx.fillText(`${ts.blue} BLUE`, cx + 14, 40);
+    ctx.textAlign = 'center'; ctx.font = '13px system-ui'; ctx.fillStyle = me ? me.color : '#8a93c9';
+    ctx.fillText(`${me ? 'You are on ' + me.team.toUpperCase() + '  ·  ' : ''}${state.mode === 'zone' ? 'ZONE BATTLE' : 'TEAM DEATHMATCH'}${state.limit ? '  ·  FIRST TO ' + state.limit : ''}  ·  Esc = dashboard`, cx, 70);
+  }
+
+  // own health bar (bottom centre)
+  if (me && me.alive) {
+    const bw = 280, bx = innerWidth / 2 - bw / 2, by = innerHeight - 46, f = Math.max(0, me.hp) / 100;
+    const hc = me.hp > 50 ? '#7cff4f' : me.hp > 25 ? '#ffd400' : '#ff5252';
+    ctx.fillStyle = '#0a0d26dd'; ctx.beginPath(); ctx.roundRect(bx - 4, by - 4, bw + 8, 26, 10); ctx.fill();
+    ctx.strokeStyle = '#3a44a0'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.save(); ctx.shadowColor = hc; ctx.shadowBlur = 12; ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.roundRect(bx, by, Math.max(4, bw * f), 18, 7); ctx.fill(); ctx.restore();
+    ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#04060f';
+    ctx.fillText(Math.ceil(me.hp) + ' HP', innerWidth / 2, by + 14);
+  }
+
+  // mini scoreboard (grouped by team)
+  ctx.textAlign = 'right'; ctx.font = 'bold 15px system-ui';
+  const mini = [...sorted].sort((a, b) => (a.team > b.team) - (a.team < b.team) || b.score - a.score);
+  mini.slice(0, 10).forEach((p, i) => {
+    ctx.fillStyle = p.id === myId ? '#fff' : p.color;
+    ctx.fillText(`${p.name}  ${p.score}`, innerWidth - 16, 30 + i * 22);
+  });
+
+  // kill feed
+  ctx.textAlign = 'left'; ctx.font = '15px system-ui';
+  const t = performance.now();
+  while (feed.length && t - feed[0].at > 5000) feed.shift();
+  feed.slice(-6).forEach((e, i) => {
+    const y = 30 + i * 22; let x = 16;
+    const part = (txt, col) => { ctx.fillStyle = col; ctx.fillText(txt, x, y); x += ctx.measureText(txt).width; };
+    if (e.kind === 'kill') { part(e.killer, e.kc); part('  ⟶  ', '#ff3d81'); part(e.victim, e.vc); }
+    else if (e.kind === 'capture') part(`${e.name} captured the zone!  +${e.points}`, e.color);
+    else if (e.kind === 'settings') part('Host changed the game settings', '#ffd400');
+    else if (e.kind === 'win') part(`${e.name} wins the match!`, e.color);
+    else part(`${e.name} ${e.kind === 'join' ? 'joined ' + e.team.toUpperCase() : 'left'}`, e.color);
+  });
+
+  // winner screen (the match is frozen while it is up)
+  if (state.match) {
+    const m = state.match, col = m.winner === 'red' ? '#ff3d5a' : '#2f9bff', cx = innerWidth / 2, cy = innerHeight / 2;
+    const ts = state.teamScores;
+    ctx.fillStyle = '#05060dcc'; ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.textAlign = 'center';
+    ctx.shadowColor = col; ctx.shadowBlur = 30; ctx.fillStyle = col; ctx.font = 'bold 56px system-ui';
+    ctx.fillText(`${m.winner.toUpperCase()} TEAM WINS!`, cx, cy - 50);
+    ctx.shadowBlur = 0;
+    if (me) {
+      const won = me.team === m.winner;
+      ctx.font = 'bold 26px system-ui'; ctx.fillStyle = won ? '#7cff4f' : '#ff8a8a';
+      ctx.fillText(won ? 'VICTORY' : 'DEFEAT', cx, cy - 10);
+    }
+    ctx.font = 'bold 34px system-ui';
+    ctx.fillStyle = '#ff3d5a'; ctx.textAlign = 'right'; ctx.fillText(`RED ${ts.red}`, cx - 16, cy + 45);
+    ctx.fillStyle = '#8a93c9'; ctx.textAlign = 'center'; ctx.fillText(':', cx, cy + 44);
+    ctx.fillStyle = '#2f9bff'; ctx.textAlign = 'left'; ctx.fillText(`${ts.blue} BLUE`, cx + 16, cy + 45);
+    ctx.textAlign = 'center'; ctx.font = '18px system-ui';
+    if (m.mvp) { ctx.fillStyle = m.mvp.team === 'red' ? '#ff3d5a' : '#2f9bff'; ctx.fillText(`MVP: ${m.mvp.name}  (${m.mvp.score} kills)`, cx, cy + 85); }
+    ctx.fillStyle = '#e8ecff'; ctx.fillText(`Next match starts in ${Math.ceil(m.restartIn)}s`, cx, cy + 120);
+  }
+
+  // death overlay
+  if (me && !me.alive && !state.match) {
+    ctx.fillStyle = '#000000aa'; ctx.fillRect(0, innerHeight / 2 - 50, innerWidth, 100);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#ff3d81'; ctx.font = 'bold 40px system-ui';
+    ctx.fillText('ELIMINATED', innerWidth / 2, innerHeight / 2 + 2);
+    ctx.fillStyle = '#e8ecff'; ctx.font = '18px system-ui';
+    ctx.fillText(`Respawning in ${me.respawn.toFixed(1)}s`, innerWidth / 2, innerHeight / 2 + 32);
+  }
+
+  // full scoreboard
+  if (showBoard) {
+    const rows = [
+      { header: `RED  ${state.teamScores.red}`, color: '#ff3d5a' }, ...sorted.filter(p => p.team === 'red'),
+      { header: `BLUE  ${state.teamScores.blue}`, color: '#2f9bff' }, ...sorted.filter(p => p.team === 'blue'),
+    ];
+    const w = 420, h = 70 + rows.length * 30, x = (innerWidth - w) / 2, y = (innerHeight - h) / 2;
+    ctx.fillStyle = '#0d1028ee'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#2a3170'; ctx.strokeRect(x, y, w, h);
+    ctx.font = 'bold 16px system-ui'; ctx.fillStyle = '#8a93c9';
+    ctx.textAlign = 'left'; ctx.fillText('PLAYER', x + 20, y + 34);
+    ctx.textAlign = 'right'; ctx.fillText('KILLS', x + w - 110, y + 34); ctx.fillText('DEATHS', x + w - 20, y + 34);
+    rows.forEach((p, i) => {
+      const ry = y + 66 + i * 30;
+      if (p.header) { ctx.fillStyle = p.color; ctx.textAlign = 'left'; ctx.fillText(p.header, x + 20, ry); return; }
+      ctx.fillStyle = p.color; ctx.textAlign = 'left'; ctx.fillText('   ' + p.name, x + 20, ry);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
+      ctx.fillText(p.score, x + w - 110, ry); ctx.fillText(p.deaths, x + w - 20, ry);
+    });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+PUTTING THE GAMES ONLINE (Render.com)
+=====================================
+Result: each game gets its own https link, e.g. https://neon-strike.onrender.com, that anyone can open
+from anywhere. Nothing to install for players. The games need NO npm packages.
+
+STEP 1 - Put this folder on GitHub (once)
+  - Make a free account at github.com and create a NEW repository (private is fine), e.g. "neon-games".
+  - In a terminal in D:\Games run:
+        git init
+        git add .
+        git commit -m "Neon games"
+        git branch -M main
+        git remote add origin https://github.com/YOUR-NAME/neon-games.git
+        git push -u origin main
+    (.gitignore already keeps your local settings.json and logs out.)
+
+STEP 2 - Deploy both games with one click
+  - Make a free account at render.com and connect your GitHub.
+  - Dashboard > New > Blueprint > pick the "neon-games" repo > Apply.
+  - Render reads render.yaml and creates two web services: neon-arena and neon-strike.
+    Wait for both to say "Live" (a few minutes). The link is shown at the top of each service.
+
+STEP 3 - Host settings (dashboard: bots, win limit, mode, radar ...)
+  - Online there is no "host PC", so each service has a secret ADMIN_KEY
+    (Render > the service > Environment > ADMIN_KEY > reveal).
+  - Open  https://YOUR-LINK.onrender.com/?admin=THE_KEY  once in your browser. For that browser tab
+    the dashboard now works as the host. Everyone else sees the settings read-only.
+  - Never share a link that contains ?admin=...
+
+GOOD TO KNOW
+  - Free plan: the service sleeps after ~15 min with nobody on it. The next visitor waits about
+    30-60 seconds for it to wake. Starter plan (about $7/month) stays on all the time.
+  - Settings you change online are lost when the service redeploys or restarts (free disk is temporary).
+  - Anyone with the link can join (up to the game's player limit). There are no accounts or passwords.
+  - Change the code later: edit, then  git add . && git commit -m "update" && git push  - Render redeploys itself.
+  - Other hosts work too (Railway, Fly.io, any VPS): run  node server.js  with the PORT environment variable
+    set, and put https in front (they all do). The page switches to wss:// automatically.
+  - Snake Clash is not included in render.yaml; it can be added the same way if you want it online later.

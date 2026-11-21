@@ -1,0 +1,6 @@
+node_modules/
+server.log
+settings.json
+fps-strike/settings.json
+snake-clash/settings.json
+*.bak

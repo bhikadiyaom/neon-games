@@ -1,0 +1,29 @@
+# Render Blueprint: deploys BOTH games from this one repository.
+# Render > New > Blueprint > pick the repo. Each game gets its own https link.
+# After deploy, open each service's Environment tab to see the generated ADMIN_KEY.
+services:
+  - type: web
+    name: neon-arena
+    runtime: node
+    plan: free
+    buildCommand: "echo no build needed"
+    startCommand: node server.js
+    healthCheckPath: /api/settings
+    envVars:
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: PUBLIC_MODE
+        value: "1"
+  - type: web
+    name: neon-strike
+    runtime: node
+    plan: free
+    rootDir: fps-strike
+    buildCommand: "echo no build needed"
+    startCommand: node server.js
+    healthCheckPath: /api/settings
+    envVars:
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: PUBLIC_MODE
+        value: "1"
