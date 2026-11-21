@@ -1,4 +1,4 @@
-// Neon Arcade hub: landing page + private rooms for Neon Arena and Neon Strike.
+// Neon Arcade hub: landing page + private rooms for Neon Arena, Neon Strike and Neon Blitz.
 // Every room is its own game-server process (the same server.js files used on the LAN), so one room
 // crashing or lagging never affects another. The hub proxies HTTP + WebSocket to the right room.
 // No npm packages needed.
@@ -15,6 +15,7 @@ const IDLE_MINUTES = Number(process.env.ROOM_IDLE_MINUTES) || 10; // empty rooms
 const GAMES = {
   arena:  { title: 'Neon Arena',  dir: __dirname },
   strike: { title: 'Neon Strike', dir: path.join(__dirname, 'fps-strike') },
+  blitz:  { title: 'Neon Blitz',  dir: path.join(__dirname, 'neon-blitz') },
 };
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I so codes are easy to read out loud
 const rooms = new Map();   // code -> { code, game, port, key, child, created, emptySince, humans }

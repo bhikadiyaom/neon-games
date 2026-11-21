@@ -1,10 +1,12 @@
-THREE GAMES IN THIS FOLDER
-==========================
+FOUR GAMES IN THIS FOLDER
+=========================
   Neon Arena   (top-down team shooter) ......... double-click "Start Game Server.bat"
   Neon Strike  (first-person 3D shooter) ....... double-click "Start Neon Strike.bat"
   Snake Clash  (snake battle, free for all) .... double-click "Start Snake Clash.bat"
+  Neon Blitz   (side-view platform shooter) .... double-click "Start Neon Blitz.bat"
   Each game has its OWN port, so you can run them at the same time:
     Neon Arena  -> http://localhost:3000     Neon Strike -> http://localhost:3003     Snake Clash -> http://localhost:3004
+    Neon Blitz  -> http://localhost:3005
   Your colleague uses the same address with YOUR PC's IP (the start window prints it), e.g. http://192.168.1.68:3003
   Run "Allow Through Firewall.bat" once (it now opens 3000, 3002, 3003 and 3004).
   Starting a game again only restarts that same game; it never stops another program.
@@ -153,3 +155,25 @@ NOTES
     hits, damage, ammo and kills. It is built for friends on a LAN, not for cheat-proof play.
   - The 3D view is drawn with the browser's 2D canvas (a raycaster, like the classic 90s
     shooters), so it runs on any normal PC without a graphics card.
+
+
+NEON BLITZ - side-view platform shooter (folder: neon-blitz)
+=============================================================
+START: double-click "Start Neon Blitz.bat" (opens http://127.0.0.1:3005). Online: create a Neon Blitz
+room from the hub and send the invite link. 2-8 people, plus bots.
+CONTROLS: A / D or Left / Right = move.  W / Up / Space = jump (hold = higher).  S / Down = drop
+  through a thin platform.  Mouse = aim.  Left click = shoot (hold to keep firing).  Tab = scoreboard.
+  Esc = menu.  M = mute.  Pads launch you high; rockets knock you around: rocket-jump!
+WEAPONS: Blaster (infinite), Shotgun (8), Sniper (5), Rocket launcher (4). Pick them up on the map;
+  green plus pads heal. You respawn after 2 seconds with a short shield.
+MAPS: Neon Grid, The Foundry (furnace pit), Skyline Rooftops (street is deadly), Core Reactor (tower).
+  All maps are mirror-symmetric, so they are fair for teams.
+MODES: Free-for-all or Team deathmatch (red vs blue, no friendly fire).
+SETTINGS (menu panel, saved in neon-blitz\settings.json): mode, map (or rotate), score limit 3-50,
+  time limit 0-15 min, bots 0-8, bot skill Easy/Normal/Hard. Online: only the room host can change them.
+KNOWN LIMITATIONS
+  - Movement is decided by each browser and checked by the server (no lag, not cheat-proof).
+  - Bots can still fall off Skyline Rooftops now and then; on the other maps they almost never do.
+  - Keyboard + mouse only (no touch screens). Fonts load from Google Fonts, so the menu needs internet
+    for the neon look (the game still works offline with fallback fonts).
+  - Tested with headless browsers and unit tests, not yet with real internet latency on Render.

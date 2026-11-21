@@ -1,7 +1,7 @@
 PUTTING NEON ARCADE ONLINE (anyone, anywhere)
 =============================================
-What you get: ONE web address with a lobby. Visitors press "Create private room" for Neon Strike or
-Neon Arena, get a 4-letter code + invite link, and send it to friends. Each room is its own match, so
+What you get: ONE web address with a lobby. Visitors press "Create private room" for Neon Strike,
+Neon Arena or Neon Blitz, get a 4-letter code + invite link, and send it to friends. Each room is its own match, so
 strangers never end up in the same game. Rooms close by themselves when empty. Nothing to install.
 
 Try it on your own PC first:  double-click "Start Online Hub (test).bat"  (opens http://127.0.0.1:3050).

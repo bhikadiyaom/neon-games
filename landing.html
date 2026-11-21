@@ -43,6 +43,7 @@
   .b-join { background: linear-gradient(135deg, #4a56ff, #7a4dff); box-shadow: 0 6px 26px rgba(122, 77, 255, .5); }
   .b-strike { background: linear-gradient(135deg, var(--pk), #b03cff); box-shadow: 0 8px 30px rgba(255, 61, 129, .5); width: 100%; }
   .b-arena { background: linear-gradient(135deg, #00c2e6, #3c7bff); box-shadow: 0 8px 30px rgba(0, 194, 230, .45); width: 100%; }
+  .b-blitz { background: linear-gradient(135deg, #ffb020, #ff5a3d); box-shadow: 0 8px 30px rgba(255, 150, 32, .45); width: 100%; color: #1a1030; }
 
   .or { text-align: center; color: var(--dim); letter-spacing: 4px; font-size: 13px; margin: 34px 0 6px; text-transform: uppercase; display: flex; align-items: center; gap: 16px; }
   .or::before, .or::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--edge)); } .or::after { transform: scaleX(-1); }
@@ -51,10 +52,12 @@
   .game:hover { transform: translateY(-6px); }
   .game.strike:hover { border-color: rgba(255, 61, 129, .7); box-shadow: 0 24px 70px rgba(255, 61, 129, .25); }
   .game.arena:hover { border-color: rgba(0, 229, 255, .7); box-shadow: 0 24px 70px rgba(0, 229, 255, .22); }
+  .game.blitz:hover { border-color: rgba(255, 176, 32, .75); box-shadow: 0 24px 70px rgba(255, 176, 32, .24); }
   .game canvas { display: block; width: 100%; height: 190px; background: #04050f; border-bottom: 1px solid var(--edge); }
   .gbody { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
   .game h2 { margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 26px; letter-spacing: 3px; }
   .strike h2 { color: var(--pk); text-shadow: 0 0 18px rgba(255, 61, 129, .55); } .arena h2 { color: var(--cy); text-shadow: 0 0 18px rgba(0, 229, 255, .5); }
+  .blitz h2 { color: #ffb020; text-shadow: 0 0 18px rgba(255, 176, 32, .55); }
   .kind { color: var(--dim); letter-spacing: 3px; font-size: 13px; text-transform: uppercase; margin: 4px 0 12px; }
   .gbody p { margin: 0 0 16px; color: #c7cff7; line-height: 1.5; flex: 1; font-size: 19px; }
   .pills { margin-bottom: 18px; } .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .5px; padding: 4px 12px; border: 1px solid var(--edge); border-radius: 99px; margin: 0 6px 6px 0; color: var(--dim); background: rgba(255, 255, 255, .03); }
@@ -110,6 +113,15 @@
         <p>Red vs Blue on a glowing map. Bounce shots off walls, hold the capture zone and win as a team. Easy to learn in a minute.</p>
         <div class="pills"><span class="pill">2-8 players</span><span class="pill">Teams</span><span class="pill">Capture zone</span><span class="pill">Bots</span></div>
         <button class="btn b-arena" data-game="arena">CREATE ROOM</button>
+      </div>
+    </section>
+    <section class="game blitz">
+      <canvas id="pvBlitz" width="640" height="380"></canvas>
+      <div class="gbody">
+        <h2>NEON BLITZ</h2><div class="kind">Side-view platform shooter</div>
+        <p>Run, jump and blast across 4 neon arenas. Aim with the mouse, grab shotguns and rockets, rocket-jump, and fight friends or bots in free-for-all or team battles.</p>
+        <div class="pills"><span class="pill">2-8 players</span><span class="pill">4 maps</span><span class="pill">Teams</span><span class="pill">Bots</span></div>
+        <button class="btn b-blitz" data-game="blitz">CREATE ROOM</button>
       </div>
     </section>
   </div>
@@ -195,6 +207,27 @@ runPreview('pvArena', (g, W, H, t) => { // top-down arena with two fighters and 
   g.globalCompositeOperation = 'source-over';
   pl(rx, ry, Math.atan2(by - ry, bx - rx), '#ff3d5a'); pl(bx, by, Math.atan2(ry - by, rx - bx), '#2f9bff');
   const vg = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,10,.7)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+});
+
+runPreview('pvBlitz', (g, W, H, t) => { // side-view arena: two robots on platforms trading shots, a jump pad and pickups
+  let s = g.createLinearGradient(0, 0, 0, H); s.addColorStop(0, '#07051a'); s.addColorStop(1, '#2a1250'); g.fillStyle = s; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,176,32,.08)'; for (let i = 0; i < 9; i++) { const x = ((i * 90 - t * 6) % 740 + 740) % 740 - 50, h = 80 + (i * 53 % 120); g.fillRect(x, H - h, 46, h); }
+  const gl = g.createRadialGradient(W / 2, H, 10, W / 2, H, W * .6); gl.addColorStop(0, 'rgba(255,176,32,.28)'); gl.addColorStop(1, 'rgba(255,176,32,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#26237a'; g.fillRect(0, H - 46, W, 46); g.fillStyle = '#7a4dff'; g.fillRect(0, H - 46, W, 3);
+  g.fillStyle = '#00e5ff'; for (const [x, y, w] of [[60, 250, 150], [430, 250, 150], [230, 170, 180], [20, 120, 110], [510, 120, 110]]) { g.fillRect(x, y, w, 4); g.globalAlpha = .18; g.fillRect(x, y + 4, w, 4); g.globalAlpha = 1; }
+  const pp = (t * 1.5) % 1; g.strokeStyle = '#ffd45a'; g.lineWidth = 3; g.globalAlpha = 1 - pp; g.beginPath(); g.moveTo(W / 2 - 12, H - 62 - pp * 30); g.lineTo(W / 2, H - 76 - pp * 30); g.lineTo(W / 2 + 12, H - 62 - pp * 30); g.stroke(); g.globalAlpha = 1; g.fillStyle = '#ffd45a'; g.fillRect(W / 2 - 22, H - 50, 44, 4);
+  const pick = (x, y, c, l) => { const b = Math.sin(t * 3 + x) * 3; g.save(); g.translate(x, y - 24 + b); g.shadowColor = c; g.shadowBlur = 16; g.fillStyle = 'rgba(8,8,26,.9)'; g.strokeStyle = c; g.lineWidth = 2; g.beginPath(); g.roundRect(-13, -13, 26, 26, 7); g.fill(); g.stroke(); g.shadowBlur = 0; g.fillStyle = c; if (l === '+') { g.fillRect(-2.5, -8, 5, 16); g.fillRect(-8, -2.5, 16, 5); } else { g.font = '900 13px Orbitron, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(l, 0, 1); } g.restore(); };
+  pick(135, 250, '#5dff8a', '+'); pick(520, 250, '#ff5a3d', 'R'); pick(320, 170, '#b388ff', 'S');
+  const bot = (x, y, a, col, vx) => { g.save(); g.translate(x, y); g.shadowColor = col; g.shadowBlur = 14; g.fillStyle = '#0a0d22'; g.strokeStyle = col; g.lineWidth = 3; const sw = Math.sin(t * 10 + x) * 8 * (vx ? 1 : 0); g.beginPath(); g.moveTo(-5, 8); g.lineTo(-5 + sw, 24); g.moveTo(5, 8); g.lineTo(5 - sw, 24); g.stroke(); g.beginPath(); g.roundRect(-11, -11, 22, 22, 6); g.fill(); g.stroke(); g.beginPath(); g.roundRect(-10, -29, 20, 17, 6); g.fill(); g.stroke(); g.shadowBlur = 0; g.fillStyle = col; g.fillRect(a ? -10 : 0, -23, 11, 5); g.restore();
+    g.save(); g.translate(x, y - 4); g.rotate(a ? Math.PI + .12 : -.12); g.fillStyle = '#0a0d22'; g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); g.roundRect(5, -5, 34, 10, 3); g.fill(); g.stroke(); g.restore(); };
+  const ax = 135 + Math.sin(t * .9) * 55, bx = 505 - Math.sin(t * .8) * 55;
+  bot(ax, 224, 0, '#ff3d5a', 1); bot(bx, 224, 1, '#2f9bff', 1);
+  g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  for (let i = 0; i < 4; i++) { const f = (t * 1.1 + i / 4) % 1, x = ax + 42 + f * (bx - ax - 84), y = 220 - 2; const gr = g.createLinearGradient(x, y, x - 34, y); gr.addColorStop(0, '#ff7088'); gr.addColorStop(1, 'rgba(255,61,90,0)'); g.strokeStyle = gr; g.lineWidth = 5; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 34, y); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 3.5, 0, 7); g.fill(); }
+  for (let i = 0; i < 3; i++) { const f = (t * .9 + .5 + i / 3) % 1, x = bx - 42 - f * (bx - ax - 84), y = 222; g.strokeStyle = '#6fbaff'; g.lineWidth = 5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 34, y); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 3.5, 0, 7); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = '#fff'; g.lineWidth = 2; const cx = 330 + Math.sin(t * 1.3) * 70, cy = 190; g.beginPath(); g.arc(cx, cy, 11, 0, 7); g.moveTo(cx - 18, cy); g.lineTo(cx - 6, cy); g.moveTo(cx + 6, cy); g.lineTo(cx + 18, cy); g.moveTo(cx, cy - 18); g.lineTo(cx, cy - 6); g.moveTo(cx, cy + 6); g.lineTo(cx, cy + 18); g.stroke();
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(4,0,14,.7)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
 });
 
 /* ---------- rooms ---------- */
