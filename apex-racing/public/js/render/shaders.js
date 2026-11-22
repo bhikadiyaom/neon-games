@@ -1,12 +1,12 @@
 // WGSL shaders. Units: metres in the world, kilometres inside the atmosphere model.
 export const FRAME = /* wgsl */`
 struct Frame {
-  viewProj: mat4x4f,
+  viewProj: mat4x4f,     // jittered (TAA)
   invViewProj: mat4x4f,
   view: mat4x4f,
   camPos: vec4f,       // xyz metres, w = time (s)
   sunDir: vec4f,       // xyz towards the sun, w = sun disk brightness
-  sunColor: vec4f,     // rgb sun illuminance above the atmosphere, w = exposure
+  sunColor: vec4f,     // rgb sun illuminance above the atmosphere, w = exposure compensation (EV)
   res: vec4f,          // render width, height, 1/width, 1/height
   params: vec4f,       // x fog density, y ambient strength, z wetness, w night
   track: vec4f,        // x lap length, y start line s, z sample spacing, w sample count
@@ -14,6 +14,11 @@ struct Frame {
   shadowSplits: vec4f, // far view depth of each cascade
   shadowTexel: vec4f,  // world size of one shadow texel per cascade
   shadowParams: vec4f, // x 1/map size, y cascade count, z max distance, w PCF taps (4 or 9)
+  vpNoJitter: mat4x4f, // for motion vectors
+  prevVP: mat4x4f,     // last frame, no jitter
+  taa: vec4f,          // xy jitter (NDC), z first dynamic instance, w frame index
+  post: vec4f,         // x dt, y motion blur shutter, z speed m/s, w history valid
+  proj: vec4f,         // x P00, y P11, z near, w AO strength (0 = off)
 };
 const PI = 3.14159265;
 `;
@@ -122,6 +127,9 @@ const SCENE_COMMON = FRAME + ATMOS + /* wgsl */`
 @group(0) @binding(4) var shadowMap: texture_depth_2d_array;
 @group(0) @binding(5) var shadowSamp: sampler_comparison;
 @group(0) @binding(6) var trackData: texture_2d<f32>;
+@group(0) @binding(7) var aoTex: texture_2d<f32>;
+@group(0) @binding(8) var livery: texture_2d_array<f32>;
+@group(0) @binding(9) var aniso: sampler;
 
 fn skyUV(dir: vec3f) -> vec2f {
   let el = asin(clamp(dir.y, -1.0, 1.0));
@@ -174,21 +182,28 @@ fn shadowAt(wp: vec3f, N: vec3f) -> f32 {
   }
   return mix(sum, 1.0, smoothstep(maxD * 0.8, maxD, vd));
 }
+fn aoAt(fragPos: vec2f) -> f32 {
+  if (F.proj.w <= 0.0) { return 1.0; }
+  return mix(1.0, textureSampleLevel(aoTex, samp, fragPos * F.res.zw, 0.0).r, F.proj.w);
+}
 `;
 
 // ---------- meshes: PBR with clear coat; kind 1 = procedural track surface ----------
 export const MESH = SCENE_COMMON + /* wgsl */`
 struct Inst { model: mat4x4f, base: vec4f, pbr: vec4f, emit: vec4f };   // pbr: metal, rough, clearcoat, kind
 @group(1) @binding(0) var<storage, read> insts: array<Inst>;
+@group(1) @binding(1) var<storage, read> prevModels: array<mat4x4f>;     // last frame's matrices of dynamic instances
 
 struct VOut {
-  @builtin(position) pos: vec4f,
+  @builtin(position) @invariant pos: vec4f,
   @location(0) wp: vec3f,
   @location(1) n: vec3f,
   @location(2) uv: vec2f,
   @location(3) @interpolate(flat) base: vec4f,
   @location(4) @interpolate(flat) pbr: vec4f,
   @location(5) @interpolate(flat) emit: vec4f,
+  @location(6) cur: vec4f,       // clip position without jitter (motion vectors)
+  @location(7) prev: vec4f,      // last frame's clip position
 };
 fn hashu(x: u32) -> u32 { let v = x * 747796405u + 2891336453u; let w = ((v >> ((v >> 28u) + 4u)) ^ v) * 277803737u; return (w >> 22u) ^ w; }
 fn hashf(x: u32) -> f32 { return f32(hashu(x)) * (1.0 / 4294967295.0); }
@@ -213,9 +228,13 @@ fn animate(w: vec3f, p: vec3f, kind: f32, ii: u32) -> vec3f {
   let inst = insts[ii];
   var w = (inst.model * vec4f(p, 1.0)).xyz;
   w = animate(w, p, inst.pbr.w, ii);
+  var pw = w;
+  let db = u32(F.taa.z);
+  if (ii >= db) { pw = (prevModels[ii - db] * vec4f(p, 1.0)).xyz; }
   var o: VOut;
   o.pos = F.viewProj * vec4f(w, 1.0); o.wp = w; o.n = (inst.model * vec4f(n, 0.0)).xyz; o.uv = uv;
   o.base = inst.base; o.pbr = inst.pbr; o.emit = inst.emit;
+  o.cur = F.vpNoJitter * vec4f(w, 1.0); o.prev = F.prevVP * vec4f(pw, 1.0);
   if (inst.pbr.w > 2.5 && inst.pbr.w < 4.5) {        // vary crowd shirts and tree greens per instance
     let h = hashf(ii * 7u + 3u);
     if (inst.pbr.w < 3.5) {
@@ -228,6 +247,7 @@ fn animate(w: vec3f, p: vec3f, kind: f32, ii: u32) -> vec3f {
   }
   return o;
 }
+fn velocity(in: VOut) -> vec2f { return (in.cur.xy / in.cur.w - in.prev.xy / in.prev.w) * vec2f(0.5, -0.5); }
 
 fn hash2(p: vec2f) -> f32 { let i = vec2i(floor(p)); return f32(hashu((bitcast<u32>(i.x) * 1973u) ^ hashu(bitcast<u32>(i.y) + 9277u))) * (1.0 / 4294967295.0); }
 fn vnoise(p: vec2f) -> f32 {
@@ -339,6 +359,7 @@ fn terrainSurface(wp: vec3f, N: vec3f, fp: f32) -> Mat {
 }
 
 fn D_GGX(NoH: f32, a: f32) -> f32 { let a2 = a * a; let d = NoH * NoH * (a2 - 1.0) + 1.0; return a2 / (PI * d * d); }
+fn D_aniso(NoH: f32, ToH: f32, BoH: f32, ax: f32, ay: f32) -> f32 { let d = ToH * ToH / (ax * ax) + BoH * BoH / (ay * ay) + NoH * NoH; return 1.0 / (PI * ax * ay * d * d); }
 fn V_Smith(NoV: f32, NoL: f32, a: f32) -> f32 {
   let a2 = a * a;
   let gv = NoL * sqrt(NoV * NoV * (1.0 - a2) + a2);
@@ -354,16 +375,46 @@ fn envBRDF(f0: vec3f, rough: f32, NoV: f32) -> vec3f {
   return f0 * ab.x + ab.y;
 }
 
-@fragment fn fs(in: VOut, @builtin(front_facing) front: bool) -> @location(0) vec4f {
+struct GOut { @location(0) color: vec4f, @location(1) vel: vec2f };
+const K_TRACK = 1.0; const K_TERRAIN = 2.0; const K_PAINT = 5.0; const K_CARBON = 7.0; const K_TYRE = 8.0; const K_BRUSHED = 9.0;
+fn isKind(k: f32, v: f32) -> bool { return abs(k - v) < 0.5; }
+
+@fragment fn fs(in: VOut, @builtin(front_facing) front: bool) -> GOut {
   let fx = fwidth(in.wp.x); let fz = fwidth(in.wp.z);
   let fu = fwidth(in.uv.x); let fsd = fwidth(in.uv.y);
+  // tangent frame from screen derivatives (anisotropic materials)
+  let dp1 = dpdx(in.wp); let dp2 = dpdy(in.wp); let duv1 = dpdx(in.uv); let duv2 = dpdy(in.uv);
   let kind = in.pbr.w;
   var N = normalize(in.n);
   if (!front) { N = -N; }
+  var Tg = dp1 * duv2.y - dp2 * duv1.y;
+  Tg = normalize(Tg - N * dot(N, Tg) + vec3f(1e-6, 0.0, 0.0));
   var m: Mat;
   m.base = in.base.rgb; m.metal = in.pbr.x; m.rough = in.pbr.y; m.coat = in.pbr.z;
-  if (kind > 0.5 && kind < 1.5) { m = trackSurface(in.uv.x, in.uv.y, fu, fsd, in.wp); }
-  else if (kind > 1.5 && kind < 2.5) { m = terrainSurface(in.wp, N, max(fx, fz)); }
+  var anisoX = 0.0; var anisoY = 0.0; var flakes = 0.0;
+  if (isKind(kind, K_TRACK)) { m = trackSurface(in.uv.x, in.uv.y, fu, fsd, in.wp); }
+  else if (isKind(kind, K_TERRAIN)) { m = terrainSurface(in.wp, N, max(fx, fz)); }
+  else if (isKind(kind, K_PAINT)) {
+    // livery texture: rgb paint, alpha = clean (1) .. dirty / matte decal (0)
+    let lv = textureSampleGrad(livery, aniso, in.uv, i32(in.base.a - 0.5), duv1, duv2);
+    m.base = lv.rgb; m.coat = lv.a; m.rough = mix(0.62, m.rough, lv.a); m.metal = in.pbr.x * lv.a;
+    flakes = lv.a * (1.0 - smoothstep(0.0006, 0.004, max(fu, fsd)));
+  }
+  else if (isKind(kind, K_CARBON)) {
+    // 2x2 twill weave: the highlight runs along the threads, alternating direction per cell
+    let q = in.uv * vec2f(260.0, 520.0);
+    let cell = (i32(floor(q.x)) + i32(floor(q.y))) % 2;
+    let along = select(0.0, 1.0, cell == 0);
+    let fade = 1.0 - smoothstep(0.002, 0.01, max(fu, fsd));
+    m.base = vec3f(0.018) * (0.8 + 0.4 * along * fade);
+    anisoX = mix(0.25, 0.08, along); anisoY = mix(0.08, 0.25, along);
+    anisoX = mix(0.16, anisoX, fade); anisoY = mix(0.16, anisoY, fade);
+  }
+  else if (isKind(kind, K_TYRE)) {
+    let t = textureSampleGrad(livery, aniso, in.uv, 7, duv1, duv2);          // misc layer: tyre sidewall lettering
+    m.base = mix(vec3f(0.028), vec3f(0.55), t.r * step(0.5, in.uv.y)); m.rough = mix(0.86, 0.6, t.r);
+  }
+  else if (isKind(kind, K_BRUSHED)) { anisoX = 0.06; anisoY = 0.32; }
 
   let V = normalize(F.camPos.xyz - in.wp);
   let L = F.sunDir.xyz;
@@ -374,19 +425,30 @@ fn envBRDF(f0: vec3f, rough: f32, NoV: f32) -> vec3f {
   let f0 = mix(vec3f(0.04), m.base, m.metal);
   let sh = shadowAt(in.wp, N);
   let sunL = sunRadianceAt(in.wp.y) * sh;
+  let ao = aoAt(in.pos.xy);
 
-  // direct sun: GGX specular + energy-conserving Lambert (foliage: wrapped, light passes through leaves)
+  // direct sun: GGX (or anisotropic GGX) specular + energy-conserving Lambert (foliage: wrapped)
   let Fs = F_Schlick(f0, VoH);
-  let spec = D_GGX(NoH, a) * V_Smith(NoV, NoL, a) * Fs;
+  var D = D_GGX(NoH, a);
+  if (anisoX > 0.0) { let B = cross(N, Tg); D = D_aniso(NoH, dot(Tg, H), dot(B, H), anisoX, anisoY); }
+  let spec = D * V_Smith(NoV, NoL, a) * Fs;
   var diffL = NoL;
   if (kind > 3.5 && kind < 4.5) { diffL = max((NoLr + 0.45) / 1.45, 0.0); }
   let diff = (vec3f(1.0) - Fs) * (1.0 - m.metal) * m.base / PI;
   var col = diff * sunL * diffL + spec * sunL * NoL;
+  // metallic flakes: tiny mirrors under the clear coat that sparkle in the sun
+  if (flakes > 0.0) {
+    let cellId = vec2u(floor(in.uv * vec2f(1400.0, 2800.0)));
+    let hh = vec3f(hashf(cellId.x * 92837u + cellId.y), hashf(cellId.y * 71993u + cellId.x + 5u), hashf((cellId.x * 1931u) ^ (cellId.y * 7u))) - 0.5;
+    let fN = normalize(N + hh * 0.35);
+    let sp = pow(max(dot(reflect(-L, fN), V), 0.0), 900.0);
+    col += m.base * sp * sunL * NoL * 6.0 * flakes;
+  }
 
-  // ambient from the sky (+ a bounce from the sunlit ground below); shadowed areas get a touch less sky
+  // ambient from the sky (+ a bounce from the sunlit ground below); shadowed areas and AO get less
   let skyUp = skyL(normalize(vec3f(N.x, max(N.y, 0.0) + 0.6, N.z)));
   let groundRad = vec3f(0.1, 0.11, 0.07) * (sunRadianceAt(0.0) * max(F.sunDir.y, 0.0) + skyL(vec3f(0.0, 1.0, 0.0)) * PI) / PI;
-  let occ = mix(0.75, 1.0, sh);
+  let occ = mix(0.75, 1.0, sh) * ao;
   let irr = PI * (skyUp * (0.5 + 0.5 * N.y) + groundRad * (0.5 - 0.5 * N.y)) * F.params.y * occ;
   let R = reflect(-V, N);
   var env = groundRad;
@@ -404,6 +466,29 @@ fn envBRDF(f0: vec3f, rough: f32, NoV: f32) -> vec3f {
     col = col * (1.0 - Fc) + cspec * sunL * NoL + (skyL(normalize(vec3f(R.x, max(R.y, 0.02), R.z))) * smoothstep(-0.1, 0.05, R.y) + groundRad * smoothstep(0.05, -0.1, R.y)) * Fc * occ;
   }
   col += in.emit.rgb * in.emit.w;
+  var o: GOut;
+  o.color = vec4f(applyFog(col, in.wp), 1.0);
+  o.vel = velocity(in);
+  return o;
+}
+
+// glass (kind 6): reflects the sky, lets the scene behind show through slightly refracted and tinted
+@group(2) @binding(0) var sceneCopy: texture_2d<f32>;
+@fragment fn fsGlass(in: VOut, @builtin(front_facing) front: bool) -> @location(0) vec4f {
+  var N = normalize(in.n); if (!front) { N = -N; }
+  let V = normalize(F.camPos.xyz - in.wp);
+  let NoV = max(dot(N, V), 1e-4);
+  let Fr = 0.04 + 0.96 * pow(1.0 - NoV, 5.0);
+  let vn = (F.view * vec4f(N, 0.0)).xyz;
+  let uv = clamp(in.pos.xy * F.res.zw - vn.xy * vec2f(1.0, -1.0) * 0.012, vec2f(0.001), vec2f(0.999));
+  let behind = textureSampleLevel(sceneCopy, samp, uv, 0.0).rgb;
+  let R = reflect(-V, N);
+  var refl = skyL(normalize(vec3f(R.x, max(R.y, 0.02), R.z)));
+  refl = mix(refl, vec3f(0.02), smoothstep(0.05, -0.1, R.y));
+  let L = F.sunDir.xyz; let H = normalize(V + L);
+  let sunL = sunRadianceAt(in.wp.y) * shadowAt(in.wp, N);
+  let spec = D_GGX(max(dot(N, H), 0.0), 0.003) * V_Smith(NoV, max(dot(N, L), 0.0), 0.003) * Fr * sunL * max(dot(N, L), 0.0);
+  let col = behind * in.base.rgb * (1.0 - Fr) + refl * Fr + spec;
   return vec4f(applyFog(col, in.wp), 1.0);
 }
 `;
@@ -421,7 +506,8 @@ struct Cascade { vp: mat4x4f };
 
 // ---------- sky (drawn last, only where nothing else was drawn) ----------
 export const SKY = SCENE_COMMON + FULLSCREEN + /* wgsl */`
-@fragment fn fs(in: FsOut) -> @location(0) vec4f {
+struct SkyOut { @location(0) color: vec4f, @location(1) vel: vec2f };
+@fragment fn fs(in: FsOut) -> SkyOut {
   let ndc = vec2f(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0);
   let w = F.invViewProj * vec4f(ndc, 0.5, 1.0);
   let dir = normalize(w.xyz / w.w - F.camPos.xyz);
@@ -435,12 +521,16 @@ export const SKY = SCENE_COMMON + FULLSCREEN + /* wgsl */`
     let limb = 1.0 - 0.6 * (1.0 - sqrt(max(1.0 - x * x, 0.0)));
     col += sunRadianceAt(F.camPos.y) * F.sunDir.w * limb * smoothstep(0.0, 0.02, dir.y + 0.01);
   }
-  // below the horizon (beyond the ground plane): dim ground colour fading into haze
   if (dir.y < 0.0) {
     let g = vec3f(0.05, 0.07, 0.035) * (sunRadianceAt(0.0) * max(F.sunDir.y, 0.0) + skyL(vec3f(0.0, 1.0, 0.0)) * PI) / PI;
     col = mix(col, g, smoothstep(0.0, -0.2, dir.y) * 0.6);
   }
-  return vec4f(col, 1.0);
+  // motion of a point at infinity: only the camera's rotation moves it
+  let cur = F.vpNoJitter * vec4f(dir, 0.0); let prev = F.prevVP * vec4f(dir, 0.0);
+  var o: SkyOut;
+  o.color = vec4f(col, 1.0);
+  o.vel = (cur.xy / cur.w - prev.xy / prev.w) * vec2f(0.5, -0.5);
+  return o;
 }
 `;
 

@@ -46,6 +46,7 @@ const lerpCurve = (c, x) => { if (x <= c[0][0]) return c[0][1]; for (let i = 1; 
 export class Car {
   constructor(specId, track) {
     this.specId = SPECS[specId] ? specId : 'vanta'; this.spec = SPECS[this.specId]; this.tr = track;
+    this.uid = 'car' + (Car.nextUid = (Car.nextUid || 0) + 1); this.brakeHeat = [0, 0, 0, 0];
     const s = this.spec;
     this.halfL = 2.28; this.halfW = 0.98;
     const L = 4.5, W = 1.95, H = 1.05;
@@ -221,6 +222,8 @@ export class Car {
       const fl = Math.hypot(Fx / (D || 1), Fy / (D || 1));
       if (fl > 1) { Fx /= fl; Fy /= fl; }
       w.w = w1; w.spin += w.w * dt;
+      // brake disc temperature (0..~1.5): heats with braking power, cools faster with airflow
+      this.brakeHeat[k] = Math.max(0, this.brakeHeat[k] + (Tb * Math.abs(w1) / 4.5e5 - this.brakeHeat[k] * (0.18 + Math.abs(vx) * 0.004)) * dt);
       w.slipX = Math.abs(kx); w.slipY = Math.abs(ay); w.sl = sl; w.slide = Math.max(0, sl - 0.9);
       // rolling resistance
       const rr = ROLL[g.kind] * Fs * Math.tanh(vx * 2);

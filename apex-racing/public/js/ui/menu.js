@@ -134,11 +134,18 @@ export class Menu {
     h += this.stepRow('Graphics preset', P[o.preset], d => { const i = presets.indexOf(o.preset) + d; if (i < 0 || i >= presets.length) return false; set({ preset: presets[i] }); });
     h += this.stepRow('Render scale', Math.round(o.renderScale * 100) + '%', d => { const v = Math.round((o.renderScale + d * 0.05) * 100) / 100; if (v < 0.5 || v > 2) return false; set({ renderScale: v }); });
     h += this.stepRow('Dynamic resolution', o.dynamicRes ? 'On (holds 60 FPS)' : 'Off', () => set({ dynamicRes: !o.dynamicRes }));
-    h += this.stepRow('Anti-aliasing (MSAA)', o.msaa ? '4x' : 'Off', () => set({ msaa: !o.msaa }));
+    h += this.stepRow('Anti-aliasing (TAA)', o.taa ? 'On' : 'Off', () => set({ taa: !o.taa }));
+    h += this.stepRow('Ambient occlusion', o.ao ? 'On' : 'Off', () => set({ ao: !o.ao }));
+    h += this.stepRow('Bloom (glow)', o.bloom !== false ? 'On' : 'Off', () => set({ bloom: o.bloom === false }));
+    h += this.stepRow('Motion blur', ['Off', 'Low', 'High'][o.motionBlur >= 0.5 ? 2 : o.motionBlur > 0 ? 1 : 0], d => { const v = [0, 0.35, 0.5], i = Math.max(0, Math.min(2, v.indexOf(o.motionBlur >= 0.5 ? 0.5 : o.motionBlur > 0 ? 0.35 : 0) + d)); set({ motionBlur: v[i] }); });
+    h += this.stepRow('Lens effects (grain, fringes)', o.lens ? 'On' : 'Off', () => set({ lens: !o.lens }));
+    h += this.stepRow('Speed units', o.units === 'mph' ? 'mph' : 'km/h', () => set({ units: o.units === 'mph' ? 'kmh' : 'mph' }));
+    h += this.stepRow('Driving assists', { off: 'Off', low: 'Low', full: 'Full' }[o.assists || 'low'], d => { const v = ['off', 'low', 'full'], i = v.indexOf(o.assists || 'low') + d; if (i < 0 || i > 2) return false; set({ assists: v[i] }); });
+    h += this.stepRow('Camera shake', o.shake !== false ? 'On' : 'Off', () => set({ shake: o.shake === false }));
     h += this.stepRow('Performance stats (F3)', o.stats ? 'On' : 'Off', () => set({ stats: !o.stats }));
     h += this.stepRow('Reduced motion', o.reducedMotion ? 'On' : 'Off', () => set({ reducedMotion: !o.reducedMotion }));
     h += this.stepRow('Sound volume', Math.round(o.volume * 100) + '%', d => { const v = Math.round((o.volume + d * 0.1) * 10) / 10; if (v < 0 || v > 1) return false; set({ volume: v }); });
-    h += '</div><div class="note">Presets: Low renders at most 1280 x 720 (laptops with built-in graphics), Medium 1600 x 900, High 1920 x 1080 (60 FPS on a mid-range graphics card), Ultra up to 4K. More options (shadows, reflections, motion blur, controls) arrive with the racing update.</div>';
+    h += '</div><div class="note">Presets: Low renders at most 1280 x 720 (laptops with built-in graphics), Medium 1600 x 900, High 1920 x 1080 (60 FPS on a mid-range graphics card), Ultra up to 4K. Picking a preset resets the effect switches below it.</div>';
     return h;
   }
   page_credits() {

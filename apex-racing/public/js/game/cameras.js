@@ -1,6 +1,6 @@
 // Camera rig: chase (default), far chase, bonnet, roof. Speed widens the field of view and adds a little lag.
 import { ground } from './trackcore.js';
-export const CAMERAS = ['Chase', 'Far chase', 'Bonnet', 'Roof'];
+export const CAMERAS = ['Chase', 'Far chase', 'Cockpit', 'Bonnet', 'Roof'];
 
 export class CameraRig {
   constructor(cam, tr) { this.cam = cam; this.tr = tr; this.mode = 0; this.pos = null; this.look = null; this.shakeT = 0; }
@@ -30,13 +30,15 @@ export class CameraRig {
       cam.target = [p[0] + ff[0] * 3 * back, p[1] + (mode === 0 ? 0.75 : 0.9), p[2] + ff[2] * 3 * back];
       cam.up = [0, 1, 0];
       cam.fov = (58 + Math.min(14, kmh * 0.05)) * Math.PI / 180;
+      cam.near = 0.1;
     } else {
-      const off = mode === 2 ? [0, 0.42, 1.0] : [0, 0.98, -0.25];
+      const off = mode === 2 ? [0.33, 0.56, -0.24] : mode === 3 ? [0, 0.42, 1.0] : [0, 0.98, -0.25];
       const o = rot(off);
       cam.pos = [p[0] + o[0], p[1] + o[1], p[2] + o[2]];
       cam.target = [cam.pos[0] + fwd[0] * 10 * back, cam.pos[1] + fwd[1] * 10 + 0.0, cam.pos[2] + fwd[2] * 10 * back];
       cam.up = up;
-      cam.fov = (66 + Math.min(10, kmh * 0.035)) * Math.PI / 180;
+      cam.fov = (mode === 2 ? 72 : 66 + Math.min(10, kmh * 0.035)) * Math.PI / 180;
+      cam.near = mode === 2 ? 0.05 : 0.1;
       this.pos = null;
     }
     // a touch of high-speed / kerb shake

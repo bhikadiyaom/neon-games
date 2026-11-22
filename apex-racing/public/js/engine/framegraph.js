@@ -22,6 +22,7 @@ export class FrameGraph {
   // spec: { colors: [{ tex, resolve?, clear?: [r,g,b,a], load?: 'load' }], depth?: { tex, clear?: number, load? }, reads?: [names] }
   render(name, spec, exec) { this.passes.push({ name, kind: 'render', spec, exec }); }
   compute(name, spec, exec) { this.passes.push({ name, kind: 'compute', spec, exec }); }
+  copy(name, src, dst) { this.passes.push({ name, kind: 'copy', spec: { reads: [src], writes: [dst] }, src, dst }); }
 
   _uses(p) {
     const s = p.spec, out = [...(s.reads || []), ...(s.writes || [])];
@@ -50,6 +51,12 @@ export class FrameGraph {
     };
     passes.forEach((p, i) => {
       for (const r of this.res.values()) if (r.transient && r.first === i) this._acquire(r);
+      if (p.kind === 'copy') {
+        const a = this.res.get(p.src).tex, b = this.res.get(p.dst).tex;
+        encoder.copyTextureToTexture({ texture: a }, { texture: b }, [Math.min(a.width, b.width), Math.min(a.height, b.height)]);
+        for (const r of this.res.values()) if (r.transient && r.last === i && r.entry) r.entry.free = true;
+        return;
+      }
       const tw = this.profiler && this.profiler.timestampWrites(p.name);
       if (p.kind === 'render') {
         const s = p.spec;

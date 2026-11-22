@@ -11,6 +11,7 @@ import { buildWorld } from './game/world.js';
 import { trackFor } from './game/tracks.js';
 import { Car, DT, SPECS } from './game/car.js';
 import { buildCarMeshes, carInstances } from './game/carmesh.js';
+import { makeLook, miscLayer, fontsReady } from './game/livery.js';
 import { Autopilot } from './game/autopilot.js';
 import { CameraRig, CAMERAS } from './game/cameras.js';
 import { DriveInput } from './game/input.js';
@@ -40,8 +41,14 @@ const progress = (f, label) => { $('ldBar').style.width = Math.round(f * 100) + 
 
 // ---------- options (saved locally) ----------
 // Each preset is a pixel budget (render resolution never exceeds it) + MSAA + shadow quality.
-const PRESETS = { low: { renderScale: 1, msaa: false, cap: 1280 * 720 }, medium: { renderScale: 1, msaa: true, cap: 1600 * 900 }, high: { renderScale: 1, msaa: true, cap: 1920 * 1080 }, ultra: { renderScale: 1, msaa: true, cap: 3840 * 2160 } };
-const options = Object.assign({ preset: 'high', renderScale: 1, msaa: true, stats: false, dynamicRes: true, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+const PRESETS = {
+  low: { renderScale: 1, cap: 1280 * 720, taa: true, ao: false, bloom: true, motionBlur: 0, lens: false },
+  medium: { renderScale: 1, cap: 1600 * 900, taa: true, ao: true, bloom: true, motionBlur: 0.35, lens: true },
+  high: { renderScale: 1, cap: 1920 * 1080, taa: true, ao: true, bloom: true, motionBlur: 0.5, lens: true },
+  ultra: { renderScale: 1, cap: 3840 * 2160, taa: true, ao: true, bloom: true, motionBlur: 0.5, lens: true },
+};
+const presetFields = p => ({ renderScale: p.renderScale, taa: p.taa, ao: p.ao, bloom: p.bloom, motionBlur: p.motionBlur, lens: p.lens });
+const options = Object.assign({ preset: 'high', ...presetFields(PRESETS.high), stats: false, dynamicRes: true, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   volume: 0.6, units: 'kmh', assists: 'low', shake: true }, store.get('options', {}));
 const profile = Object.assign({ name: 'Driver ' + (100 + Math.floor(Math.random() * 900)), car: 'vanta', livery: LIVERIES[0] }, store.get('profile', {}));
 profile.name = APEX.cleanName(profile.name); profile.car = APEX.CARS[APEX.carIndex(profile.car)].id; profile.livery = APEX.cleanColor(profile.livery, LIVERIES[0]);
@@ -63,8 +70,8 @@ function fallback(err) {
 // time of day presets for the sun / exposure
 function environment(def, time) {
   const t = time === 'auto' ? def.time : time;
-  if (t === 'day') return { name: 'day', sunDir: sunDirection(52, 140), sunColor: [15, 15, 15], sunDisk: 20, exposure: 0.85, fog: 0.8, ambient: 1 };
-  return { name: 'sunset', sunDir: sunDirection(8, 28), sunColor: [16, 16, 16], sunDisk: 30, exposure: 1.45, fog: 1.0, ambient: 1 };
+  if (t === 'day') return { name: 'day', sunDir: sunDirection(52, 140), sunColor: [15, 15, 15], sunDisk: 20, ev: -0.2, fog: 0.8, ambient: 1 };
+  return { name: 'sunset', sunDir: sunDirection(8, 28), sunColor: [16, 16, 16], sunDisk: 30, ev: 0.25, fog: 1.0, ambient: 1 };
 }
 
 async function boot() {
@@ -96,6 +103,11 @@ async function boot() {
     return;
   }
   const tr = world.tr;
+  // liveries: layer 0 = the player, 1-6 = rivals (phase 5), 7 = shared misc (tyre lettering)
+  await fontsReady();
+  renderer.setLiveryLayer(7, miscLayer());
+  let look = null;
+  const paintPlayer = () => { look = makeLook({ color: profile.livery, number: game.number || 7, name: profile.name, seed: 7 }); look.layer = 0; renderer.setLiveryLayer(0, look.canvas); };
 
   // ---------- room ----------
   progress(0.93, 'Joining the room...');
@@ -107,24 +119,24 @@ async function boot() {
     const v = String(gpu.info.vendor || '').toLowerCase(), a = String(gpu.info.architecture || '').toLowerCase();
     const integrated = (v.includes('intel') && !a.startsWith('xe-hpg') && !a.startsWith('xe2-hpg')) || v.includes('qualcomm') || v.includes('arm') || v.includes('imagination');
     const preset = integrated ? 'low' : v.includes('apple') ? 'medium' : 'high';
-    Object.assign(options, { preset, renderScale: PRESETS[preset].renderScale, msaa: PRESETS[preset].msaa });
+    Object.assign(options, { preset, ...presetFields(PRESETS[preset]) });
   }
   const applyQuality = () => {
     const p = PRESETS[options.preset] || PRESETS.high;
-    renderer.quality.msaa = options.msaa ? 4 : 1;
+    Object.assign(renderer.quality, { taaHQ: options.preset !== 'low', taa: !!options.taa, ao: !!options.ao, bloom: options.bloom !== false, motionBlur: options.reducedMotion ? 0 : +options.motionBlur || 0, ca: !!options.lens && !options.reducedMotion, grain: !!options.lens });
     renderer.quality.userScale = options.renderScale;
     renderer.quality.cap = p.cap;
     renderer.quality.shadows = SHADOW_PRESETS[options.preset] || SHADOW_PRESETS.high;
     if (options.stats !== profiler.visible) profiler.toggle();
   };
   const onOptions = patch => {
-    if (patch.preset) { const p = PRESETS[patch.preset]; Object.assign(options, { preset: patch.preset, renderScale: p.renderScale, msaa: p.msaa }); }
+    if (patch.preset) Object.assign(options, { preset: patch.preset, ...presetFields(PRESETS[patch.preset]) });
     else Object.assign(options, patch);
     if ('volume' in patch) setVolume(options.volume);
     store.set('options', options); applyQuality();
   };
   applyQuality();
-  const onProfile = patch => { Object.assign(profile, patch); store.set('profile', profile); net.sendProfile(patch); if (patch.car && game.state === 'title') newAttractCar(); };
+  const onProfile = patch => { Object.assign(profile, patch); store.set('profile', profile); net.sendProfile(patch); if (patch.car && game.state === 'title') newAttractCar(); if (patch.livery || patch.name) paintPlayer(); };
 
   // ---------- sizing + dynamic resolution ----------
   // The canvas itself is sized to the render resolution whenever we render below 100%, so no pass ever runs at
@@ -173,6 +185,8 @@ async function boot() {
     game.ap = new Autopilot(game.car, tr, { grip: 0.82 });
   }
   newAttractCar();
+  paintPlayer();
+  net.addEventListener('welcome', e => { if (e.detail && e.detail.num) { game.number = e.detail.num; paintPlayer(); } });
 
   function startRace(mode) {
     unlockAudio();
@@ -189,7 +203,7 @@ async function boot() {
     car.reset(slot.s, slot.u);
     game.car = car; game.ap = null; game.acc = 0; game.finishT = 0;
     game.session = new RaceSession({ tr, def, laps: mode === 'trial' ? Infinity : s.laps, mode, carId: car.specId });
-    game.state = 'race'; rig.pos = null;
+    game.state = 'race'; rig.pos = null; renderer.cut = true;
     show(''); hud.show(true); hud.closeMenu(); input.active = true;
     if (net.roster.length > 1) toast('Online grids arrive with the multiplayer update. For now everyone races on their own copy of the track.');
   }
@@ -198,7 +212,7 @@ async function boot() {
     hud.closeMenu(); hud.show(false); show('title'); menu.renderSheet(true);
     if (game.engine) game.engine.stop();
     env = environment(def, net.settings.time === 'night' ? 'auto' : net.settings.time);
-    newAttractCar();
+    newAttractCar(); renderer.cut = true;
   }
   function pause() {
     if (game.state !== 'race') return;
@@ -206,7 +220,7 @@ async function boot() {
     hud.openMenu('hPause', [
       { label: 'Resume', run: () => { hud.closeMenu(); game.state = 'race'; input.active = true; input.take(); } },
       { label: 'Restart', run: () => startRace(game.session.mode) },
-      { label: 'Camera: ' + CAMERAS[rig.mode], run: () => { rig.next(); pause2(); } },
+      { label: 'Camera: ' + CAMERAS[rig.mode], run: () => { rig.next(); renderer.cut = true; pause2(); } },
       { label: 'Quit to menu', run: quitToMenu },
     ]);
   }
@@ -218,7 +232,7 @@ async function boot() {
   }
   function resetToTrack() {
     const car = game.car, q = locate(tr, car.pos[0], car.pos[2], car.hint);
-    car.reset(q.s, Math.max(-3, Math.min(3, q.u * 0.3)));
+    car.reset(q.s, Math.max(-3, Math.min(3, q.u * 0.3))); renderer.cut = true;
     if (game.session) game.session.prevD = null;
   }
 
@@ -271,7 +285,7 @@ async function boot() {
         inp = input.read(dt, car.speed);
         for (const a of input.take()) {
           if (a === 'pause') { pause(); break; }
-          if (a === 'camera') rig.next();
+          if (a === 'camera') { rig.next(); renderer.cut = true; }
           if (a === 'reset') resetToTrack();
           if (a === 'shiftUp') car.shift(1);
           if (a === 'shiftDown') car.shift(-1);
@@ -321,13 +335,13 @@ async function boot() {
     }
 
     // ---- per-frame instances: the car + start lights ----
-    carInstances(car, alpha, hexRGB(profile.livery), renderer.dynamic, { headlights: false });
+    carInstances(car, alpha, look, renderer.dynamic, { headlights: false, camPos: cam.pos, lodBias: options.preset === 'low' ? 1 : 0 });
     const lit = S && S.state === 'countdown' ? S.lights : 0;
     world.gantry.lights.forEach((p, k) => renderer.dynamic.push({ mesh: 'ico', model: trs(p, 0, 0, 0, [0.62, 0.62, 0.62]), ...mat(0.1, 0.01, 0.01, 0, 0.25), emit: 4 - k < lit ? [1, 0.02, 0.01, 2.6] : [0.12, 0.01, 0.01, 0.15] }));
 
     // ---- render ----
     const eff = applySize(now);
-    renderer.render(cam, env, t);
+    renderer.render(cam, env, t, { dt, speed: Math.abs(car.speed) });
 
     // ---- HUD, audio, network ----
     if (game.state !== 'title' && S) hud.update(now, S, car, [], { units: options.units, color: profile.livery, place: 1, of: 1 });
@@ -340,7 +354,9 @@ async function boot() {
       net.sendState({ x: car.pos[0], y: car.pos[1], z: car.pos[2], qx: car.q[0], qy: car.q[1], qz: car.q[2], qw: car.q[3], vx: car.vel[0], vy: car.vel[1], vz: car.vel[2],
         steer: car.input.steer, throttle: car.input.throttle, brake: car.input.brake, gear: car.gear, rpm: car.rpm, flags: car.input.brake > 0.05 ? 1 : 0, lap: S ? Math.min(255, S.lap) : 0, dist: S && S.prevD !== null ? S.prevD : 0, seq: 0 });
     }
-    profiler.extra['Render size'] = `${renderer.width} x ${renderer.height} (${Math.round(eff * 100)}% of ${dispW} x ${dispH}, dynamic ${Math.round(dyn * 100)}%) MSAA ${renderer.quality.msaa}x`;
+    const rq = renderer.quality;
+    profiler.extra['Render size'] = `${renderer.width} x ${renderer.height} (${Math.round(eff * 100)}% of ${dispW} x ${dispH}, dynamic ${Math.round(dyn * 100)}%)`;
+    profiler.extra['Effects'] = ['TAA', 'AO', 'bloom'].filter((n, i) => [rq.taa, rq.ao, rq.bloom][i]).join(' + ') + (rq.motionBlur ? ' + motion blur' : '') + (rq.ca ? ' + lens' : '');
     profiler.extra['Shadows'] = `${renderer.quality.shadows.cascades} cascades, ${renderer.quality.shadows.size}px, ${renderer.quality.shadows.dist} m`;
     profiler.extra['Culling'] = `${renderer.stats.drawn} drawn, ${renderer.stats.culled} culled`;
     profiler.extra['Physics'] = `${physMs.toFixed(2)} ms/frame (${(1 / DT).toFixed(0)} Hz)`;

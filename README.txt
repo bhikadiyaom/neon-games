@@ -179,7 +179,7 @@ KNOWN LIMITATIONS
     for the neon look (the game still works offline with fallback fonts).
   - Tested with headless browsers and unit tests, not yet with real internet latency on Render.
 
-NEON APEX GP - 3D racing (folder: apex-racing)   [work in progress: phase 2 of 8]
+NEON APEX GP - 3D racing (folder: apex-racing)   [work in progress: phase 3 of 8]
 =================================================================================
 START: double-click "Start Neon Apex GP.bat" (opens http://127.0.0.1:3006). Online: create a Neon Apex GP
 room from the hub and send the invite link or the 4-letter code. Up to 8 racers; more people can watch.
@@ -191,21 +191,30 @@ WHAT WORKS NOW (phase 2): the Valmore Hills circuit (3.1 km, hills, banking, ker
   with full physics (suspension, tyres, gearbox, ABS / traction control), Race (start lights, laps, sectors,
   results) and Time trial (flying laps, personal bests saved in this browser). The title screen shows your
   car lapping the circuit. Rooms, the host dashboard, garage, options and the F3 overlay work as before.
-  Not yet: AI rivals, racing against other people in the room, the other four tracks, rain and night.
+  Phase 3 added the detailed race car (about 146,000 triangles up close, 3 levels of detail, interior with a
+  turning steering wheel and a driver), your livery painted onto it (colour, stripes, race number, name,
+  sponsor decals, dirt), metallic paint flakes, woven carbon, see-through glass, glowing brake discs, and the
+  picture effects: smooth edges (TAA), ambient occlusion, bloom (lights glow), automatic exposure, motion blur,
+  subtle lens effects. New camera: Cockpit.
+  Not yet: AI rivals, racing against other people in the room, the other four tracks, rain and night,
+  reflections on wet roads (they arrive with rain).
 DRIVING: Up / W = throttle. Down / S = brake (hold when stopped to reverse). Left / Right or A / D = steer.
-  Space = handbrake. C = camera (chase, far chase, bonnet, roof). B = look back. R = back on the track.
+  Space = handbrake. C = camera (chase, far chase, cockpit, bonnet, roof). B = look back. R = back on the track.
   E / Q = shift up / down (switches to manual gears). Esc = pause.
   Gamepad: right trigger = throttle, left trigger = brake, left stick = steer, X = handbrake, Y = camera,
   LB = look back, RB / B = shift, Start = pause.
 MENU KEYS: Up / Down = choose. Left / Right = change a value. Enter = select. Esc = back. F3 = stats.
 GRAPHICS PRESETS (Options): Low renders at most 1280 x 720 (built-in laptop graphics), Medium 1600 x 900,
   High 1920 x 1080, Ultra up to 4K. Dynamic resolution lowers the resolution a little when the frame
-  rate drops (never below 75% on High). Your options, car, colour and best laps are saved in this browser.
-MEASURED (phase 2, this PC: Intel integrated graphics, which is far below the mid-range target card):
-  Low about 55-60 FPS with dynamic resolution (39 FPS at a fixed 1248 x 702); High at a fixed 1080p 16 FPS.
+  rate drops (never below 75% on High). Options can also switch TAA, ambient occlusion, bloom, motion blur,
+  lens effects, speed units, driving assists and camera shake. Your options, car, colour and best laps are
+  saved in this browser.
+MEASURED (phase 3, this PC: Intel integrated graphics, which is far below the mid-range target card):
+  Low about 50 FPS in a race with dynamic resolution (24 FPS at a fixed 1248 x 702 with all its effects);
+  High at a fixed 1080p with every effect about 10 FPS.
   The "60 FPS at 1080p on a mid-range graphics card" target is not measured yet (no such card here).
   Server: about 50 MB of memory per room, a game tick with 8 racers costs about 0.02 ms.
-  Car physics: about 0.03 ms per step at 240 steps per second. The whole game downloads as about 74 KB.
+  Car physics: about 0.03-0.06 ms per step at 240 steps per second. The whole game downloads as about 90 KB.
 SETTINGS: online rooms start from the defaults; on the LAN they are saved in apex-racing\settings.json.
   Only the room host can change them.
 TESTS: node apex-racing/test/server.test.js   node apex-racing/test/hub.test.js
