@@ -101,6 +101,55 @@
   #prof { position: fixed; left: .8rem; top: .8rem; z-index: 60; display: none; font: 600 12px/1.45 Consolas, monospace; color: #dfe6ff; background: rgba(4, 6, 16, .82); border: 1px solid rgba(0,229,255,.4); border-radius: 8px; padding: 8px 10px; min-width: 300px; pointer-events: none; }
   #prof table { border-collapse: collapse; margin-top: 4px; width: 100%; } #prof td { padding: 0 6px 0 0; } #prof td + td { text-align: right; color: #9ff3ff; }
 
+
+  /* ---------- race HUD (broadcast style) ---------- */
+  #hud { position: fixed; inset: 0; z-index: 20; display: none; pointer-events: none; font-family: var(--disp); color: #fff; }
+  #hud.on { display: block; }
+  #hud .hbox { position: absolute; top: 2.2rem; left: 2.2rem; width: 6.6rem; height: 6.6rem; background: var(--red); display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 .4rem 1.6rem rgba(0,0,0,.4); }
+  #hud .hbox.dark { left: 9rem; background: rgba(8, 10, 18, .86); }
+  #hud .lbl { font: 700 .95rem var(--ui); letter-spacing: .2rem; opacity: .85; }
+  #hud .big { font-style: italic; font-weight: 800; line-height: .95; }
+  #hud .big b { font-size: 3.6rem; } #hud .big small { font-size: 1.6rem; opacity: .8; }
+  #hud .htime { position: absolute; top: 2.2rem; right: 2.2rem; width: 22rem; padding: 1rem 1.2rem; background: rgba(8, 10, 18, .86); border-radius: .4rem; box-shadow: 0 .4rem 1.6rem rgba(0,0,0,.35); }
+  #hud .row1 { display: flex; justify-content: space-between; align-items: baseline; } #hud .row1 span, #hud .row2 span { font: 700 .95rem var(--ui); letter-spacing: .15rem; opacity: .8; }
+  #hud .row1 b { font-style: italic; font-weight: 800; font-size: 2.9rem; letter-spacing: .05rem; }
+  #hud .row2 { display: flex; justify-content: space-between; font-size: 1.35rem; font-style: italic; font-weight: 700; margin-top: .1rem; } #hud .row2 i { opacity: .9; }
+  #hud .secs { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; margin-top: .7rem; }
+  #hud .secs div { background: rgba(255,255,255,.08); border-radius: .25rem; text-align: center; padding: .3rem 0 .45rem; position: relative; overflow: hidden; }
+  #hud .secs span { display: block; font: 700 .8rem var(--ui); letter-spacing: .12rem; opacity: .7; } #hud .secs i { font-size: 1.25rem; font-weight: 700; }
+  #hud .secs u { position: absolute; left: 0; right: 0; bottom: 0; height: .25rem; background: rgba(255,255,255,.2); }
+  #hud .secs .purple { background: #7a2cff; } #hud .secs .green { background: #12b04a; } #hud .secs .yellow { background: #e6b800; color: #1a1400; } #hud .secs .invalid { background: #7a1b28; }
+  #hMap { position: absolute; left: 2.2rem; bottom: 2.2rem; width: 13rem; height: 13rem; background: rgba(8, 10, 18, .6); border-radius: .6rem; }
+  #hud .hspeed { position: absolute; right: 2.2rem; bottom: 2.2rem; width: 22rem; padding: .9rem 1.2rem 1rem; background: rgba(8, 10, 18, .86); border-radius: .4rem; }
+  #hud .leds { display: flex; gap: .3rem; margin-bottom: .6rem; } #hud .leds i { flex: 1; height: .55rem; border-radius: .15rem; background: rgba(255,255,255,.12); }
+  #hud .leds i.g { background: #2bff6a; box-shadow: 0 0 .6rem #2bff6a; } #hud .leds i.a { background: #ffc400; box-shadow: 0 0 .6rem #ffc400; } #hud .leds i.r { background: #ff2d3d; box-shadow: 0 0 .6rem #ff2d3d; }
+  #hud .leds i.b { background: #3d8bff; box-shadow: 0 0 .8rem #3d8bff; }
+  #hud .gs { display: flex; align-items: flex-end; justify-content: space-between; }
+  #hud .gear { width: 4.6rem; height: 4.6rem; border: .2rem solid #fff; border-radius: .4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #hud .gear b { font-style: italic; font-weight: 800; font-size: 2.8rem; line-height: .9; } #hud .gear span, #hud .spd span, #hud .rpmlbl { font: 700 .8rem var(--ui); letter-spacing: .15rem; opacity: .8; }
+  #hud .spd { text-align: right; } #hud .spd b { display: block; font-style: italic; font-weight: 900; font-size: 5.2rem; line-height: .85; }
+  #hud .rpm { height: .5rem; background: rgba(255,255,255,.15); margin-top: .7rem; border-radius: .2rem; overflow: hidden; } #hud .rpm i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #fff, #fff 80%, var(--red)); }
+  #hud .rpmlbl { display: flex; justify-content: space-between; margin-top: .3rem; }
+  #hud .lights { position: absolute; top: 2.2rem; left: 50%; transform: translateX(-50%) translateY(-12rem); display: flex; gap: .8rem; padding: .8rem 1.2rem; background: rgba(8, 10, 18, .9); border-radius: .8rem; transition: transform .35s; }
+  #hud .lights.show { transform: translateX(-50%); }
+  #hud .lights i { width: 3.4rem; height: 3.4rem; border-radius: 50%; background: #2a0a0e; border: .2rem solid #111; }
+  #hud .lights i.on { background: radial-gradient(circle at 40% 35%, #ff8a8a, #ff1a2a 55%, #a00010); box-shadow: 0 0 1.6rem #ff1a2a; }
+  #hud .hmsg { position: absolute; top: 30%; left: 50%; transform: translateX(-50%) scale(.9); opacity: 0; transition: .2s; font-style: italic; font-weight: 900; font-size: 3.4rem; letter-spacing: .1rem; text-shadow: 0 .3rem 1.4rem rgba(0,0,0,.6); white-space: nowrap; }
+  #hud .hmsg.on { opacity: 1; transform: translateX(-50%) scale(1); } #hud .hmsg.go { color: #2bff6a; font-size: 6rem; } #hud .hmsg.warn { color: #ffcc33; } #hud .hmsg.pb { color: #c79bff; }
+  #hud .hhint { position: absolute; bottom: .7rem; left: 50%; transform: translateX(-50%); font: 600 1rem var(--ui); color: rgba(255,255,255,.75); text-shadow: 0 .1rem .4rem #000; white-space: nowrap; }
+  #hud .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(4, 5, 12, .55); backdrop-filter: blur(.4rem); pointer-events: auto; }
+  #hud .overlay.on { display: flex; }
+  #hud .ocard { min-width: 26rem; padding: 2rem 2.2rem; border-radius: 1.2rem; background: linear-gradient(160deg, rgba(24, 22, 62, .92), rgba(7, 8, 24, .95)); border: 1px solid var(--edge); }
+  #hud .ocard.wide { min-width: 40rem; }
+  #hud .ocard h2 { margin: 0 0 1.2rem; font-style: italic; font-weight: 900; font-size: 2.6rem; letter-spacing: .1rem; }
+  #hud .olist { display: flex; flex-direction: column; gap: .35rem; margin-top: 1rem; }
+  #hud .olist button { text-align: left; font-family: var(--disp); font-weight: 700; font-size: 1.5rem; padding: .55rem 1.1rem; color: #f4f6ff; background: rgba(255,255,255,.06); border-left: .32rem solid transparent; }
+  #hud .olist button.sel { background: #fff; color: #10121f; border-left-color: var(--red); }
+  #hud .rsum { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; } #hud .rsum div { background: rgba(255,255,255,.06); border-radius: .4rem; padding: .6rem .8rem; }
+  #hud .rsum span { display: block; font: 700 .8rem var(--ui); letter-spacing: .15rem; opacity: .7; } #hud .rsum b { font-style: italic; font-size: 1.7rem; }
+  #hud .rtab { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: 1.35rem; } #hud .rtab td { padding: .3rem .6rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+  #hud .rtab tr.best td { color: #c79bff; } #hud .rtab tr.inv td { opacity: .5; text-decoration: line-through; }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 <!--IMPORTMAP-->
@@ -151,6 +200,7 @@
   <div id="sheet"></div>
 </div>
 
+<div id="hud"></div>
 <div id="toast"></div>
 <div id="prof"></div>
 

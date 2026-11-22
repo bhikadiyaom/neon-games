@@ -71,9 +71,15 @@ export class MeshPool {
     const baseVertex = this.v.length / 8, firstIndex = this.i.length;
     for (const x of mb.v) this.v.push(x);
     for (const x of mb.i) this.i.push(x);
-    const mesh = { name, firstIndex, indexCount: mb.i.length, baseVertex };
+    // local bounding sphere (for culling)
+    let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (let k = 0; k < mb.v.length; k += 8) for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], mb.v[k + a]); hi[a] = Math.max(hi[a], mb.v[k + a]); }
+    const center = [0, 1, 2].map(a => (lo[a] + hi[a]) / 2);
+    let radius = 0; for (let k = 0; k < mb.v.length; k += 8) radius = Math.max(radius, Math.hypot(mb.v[k] - center[0], mb.v[k + 1] - center[1], mb.v[k + 2] - center[2]));
+    const mesh = { name, firstIndex, indexCount: mb.i.length, baseVertex, center, radius };
     this.meshes.set(name, mesh); return mesh;
   }
+  has(name) { return this.meshes.has(name); }
   upload(gpu) {
     this.vbuf = gpu.bufferWith(new Float32Array(this.v), GPUBufferUsage.VERTEX, 'mesh-vertices');
     this.ibuf = gpu.bufferWith(new Uint32Array(this.i), GPUBufferUsage.INDEX, 'mesh-indices');

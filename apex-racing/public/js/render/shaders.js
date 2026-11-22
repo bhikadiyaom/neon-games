@@ -4,11 +4,16 @@ struct Frame {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
   view: mat4x4f,
-  camPos: vec4f,     // xyz metres, w = time (s)
-  sunDir: vec4f,     // xyz towards the sun, w = sun disk brightness
-  sunColor: vec4f,   // rgb sun illuminance above the atmosphere, w = exposure
-  res: vec4f,        // render width, height, 1/width, 1/height
-  params: vec4f,     // x fog density, y ambient strength, z wetness, w night
+  camPos: vec4f,       // xyz metres, w = time (s)
+  sunDir: vec4f,       // xyz towards the sun, w = sun disk brightness
+  sunColor: vec4f,     // rgb sun illuminance above the atmosphere, w = exposure
+  res: vec4f,          // render width, height, 1/width, 1/height
+  params: vec4f,       // x fog density, y ambient strength, z wetness, w night
+  track: vec4f,        // x lap length, y start line s, z sample spacing, w sample count
+  shadowVP: array<mat4x4f, 4>,
+  shadowSplits: vec4f, // far view depth of each cascade
+  shadowTexel: vec4f,  // world size of one shadow texel per cascade
+  shadowParams: vec4f, // x 1/map size, y cascade count, z max distance, w PCF taps (4 or 9)
 };
 const PI = 3.14159265;
 `;
@@ -114,6 +119,9 @@ const SCENE_COMMON = FRAME + ATMOS + /* wgsl */`
 @group(0) @binding(1) var transLUT: texture_2d<f32>;
 @group(0) @binding(2) var samp: sampler;
 @group(0) @binding(3) var skyLUT: texture_2d<f32>;
+@group(0) @binding(4) var shadowMap: texture_depth_2d_array;
+@group(0) @binding(5) var shadowSamp: sampler_comparison;
+@group(0) @binding(6) var trackData: texture_2d<f32>;
 
 fn skyUV(dir: vec3f) -> vec2f {
   let el = asin(clamp(dir.y, -1.0, 1.0));
@@ -137,6 +145,35 @@ fn applyFog(col: vec3f, wp: vec3f) -> vec3f {
   let haze = skyL(normalize(vec3f(dir.x, max(dir.y, 0.015), dir.z)));
   return col * T + haze * (1.0 - T);
 }
+// Cascaded shadow maps: pick the cascade by view depth, offset along the normal by ~1.5 texels (no acne),
+// filter with hardware 2x2 compares in a 2x2 or 3x3 pattern, fade out at the far end.
+fn shadowAt(wp: vec3f, N: vec3f) -> f32 {
+  let vd = -(F.view * vec4f(wp, 1.0)).z;
+  let maxD = F.shadowParams.z;
+  if (vd > maxD || F.shadowParams.y < 0.5) { return 1.0; }
+  var c = 0;
+  if (vd > F.shadowSplits.x) { c = 1; }
+  if (vd > F.shadowSplits.y) { c = 2; }
+  if (vd > F.shadowSplits.z) { c = 3; }
+  c = min(c, i32(F.shadowParams.y) - 1);
+  let p = F.shadowVP[c] * vec4f(wp + N * (F.shadowTexel[c] * 1.6), 1.0);
+  let uv = vec2f(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5);
+  if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0)) || p.z > 1.0) { return 1.0; }
+  let ts = F.shadowParams.x;
+  var sum = 0.0;
+  if (F.shadowParams.w > 5.0) {
+    for (var y = -1; y <= 1; y++) { for (var x = -1; x <= 1; x++) {
+      sum += textureSampleCompareLevel(shadowMap, shadowSamp, uv + vec2f(f32(x), f32(y)) * ts, c, p.z);
+    } }
+    sum /= 9.0;
+  } else {
+    for (var y = 0; y < 2; y++) { for (var x = 0; x < 2; x++) {
+      sum += textureSampleCompareLevel(shadowMap, shadowSamp, uv + (vec2f(f32(x), f32(y)) - 0.5) * ts, c, p.z);
+    } }
+    sum /= 4.0;
+  }
+  return mix(sum, 1.0, smoothstep(maxD * 0.8, maxD, vd));
+}
 `;
 
 // ---------- meshes: PBR with clear coat; kind 1 = procedural track surface ----------
@@ -153,16 +190,45 @@ struct VOut {
   @location(4) @interpolate(flat) pbr: vec4f,
   @location(5) @interpolate(flat) emit: vec4f,
 };
-@vertex fn vs(@location(0) p: vec3f, @location(1) n: vec3f, @location(2) uv: vec2f, @builtin(instance_index) ii: u32) -> VOut {
-  let inst = insts[ii];
-  let w = inst.model * vec4f(p, 1.0);
-  var o: VOut;
-  o.pos = F.viewProj * w; o.wp = w.xyz; o.n = (inst.model * vec4f(n, 0.0)).xyz; o.uv = uv;
-  o.base = inst.base; o.pbr = inst.pbr; o.emit = inst.emit;
+fn hashu(x: u32) -> u32 { let v = x * 747796405u + 2891336453u; let w = ((v >> ((v >> 28u) + 4u)) ^ v) * 277803737u; return (w >> 22u) ^ w; }
+fn hashf(x: u32) -> f32 { return f32(hashu(x)) * (1.0 / 4294967295.0); }
+
+// kind 3 = crowd (people bob and wave), kind 4 = foliage (sways in the wind)
+fn animate(w: vec3f, p: vec3f, kind: f32, ii: u32) -> vec3f {
+  var o = w;
+  let t = F.camPos.w;
+  if (kind > 2.5 && kind < 3.5) {
+    let h = hashf(ii);
+    let cheer = max(0.0, sin(t * (2.5 + h * 3.0) + h * 40.0));
+    o.y += cheer * cheer * 0.10 * smoothstep(0.2, 1.0, p.y + 0.5);
+  } else if (kind > 3.5 && kind < 4.5) {
+    let k = max(p.y + 0.5, 0.0);
+    o.x += sin(t * 1.1 + w.z * 0.05 + w.x * 0.03) * 0.12 * k;
+    o.z += cos(t * 0.9 + w.x * 0.04) * 0.08 * k;
+  }
   return o;
 }
 
-fn hashu(x: u32) -> u32 { let v = x * 747796405u + 2891336453u; let w = ((v >> ((v >> 28u) + 4u)) ^ v) * 277803737u; return (w >> 22u) ^ w; }
+@vertex fn vs(@location(0) p: vec3f, @location(1) n: vec3f, @location(2) uv: vec2f, @builtin(instance_index) ii: u32) -> VOut {
+  let inst = insts[ii];
+  var w = (inst.model * vec4f(p, 1.0)).xyz;
+  w = animate(w, p, inst.pbr.w, ii);
+  var o: VOut;
+  o.pos = F.viewProj * vec4f(w, 1.0); o.wp = w; o.n = (inst.model * vec4f(n, 0.0)).xyz; o.uv = uv;
+  o.base = inst.base; o.pbr = inst.pbr; o.emit = inst.emit;
+  if (inst.pbr.w > 2.5 && inst.pbr.w < 4.5) {        // vary crowd shirts and tree greens per instance
+    let h = hashf(ii * 7u + 3u);
+    if (inst.pbr.w < 3.5) {
+      var pal = array<vec3f, 8>(vec3f(0.6, 0.05, 0.05), vec3f(0.05, 0.15, 0.6), vec3f(0.7, 0.7, 0.7), vec3f(0.8, 0.6, 0.05), vec3f(0.05, 0.35, 0.1), vec3f(0.08, 0.08, 0.09), vec3f(0.5, 0.1, 0.45), vec3f(0.85, 0.35, 0.05));
+      if (p.y > 0.35) { o.base = vec4f(vec3f(0.55, 0.38, 0.27) * (0.5 + h), 1.0); }       // heads
+      else { o.base = vec4f(pal[hashu(ii) % 8u], 1.0); }
+    } else {
+      o.base = vec4f(inst.base.rgb * (0.7 + 0.6 * h), 1.0);
+    }
+  }
+  return o;
+}
+
 fn hash2(p: vec2f) -> f32 { let i = vec2i(floor(p)); return f32(hashu((bitcast<u32>(i.x) * 1973u) ^ hashu(bitcast<u32>(i.y) + 9277u))) * (1.0 / 4294967295.0); }
 fn vnoise(p: vec2f) -> f32 {
   let i = floor(p); let f = fract(p); let u = f * f * (3.0 - 2.0 * f);
@@ -183,39 +249,92 @@ fn band(x: f32, lo: f32, hi: f32, w: f32) -> f32 { let ww = max(w, 1e-4); return
 
 struct Mat { base: vec3f, metal: f32, rough: f32, coat: f32 };
 
-fn trackSurface(wp: vec3f, fx: f32, fz: f32) -> Mat {
+// per-sample track data, linearly interpolated: x half width, y kerb (0/1), z racing line offset
+fn trackInfo(s: f32) -> vec4f {
+  let n = i32(F.track.w);
+  let f = s / F.track.z;
+  let i0 = ((i32(floor(f)) % n) + n) % n;
+  let i1 = (i0 + 1) % n;
+  return mix(textureLoad(trackData, vec2i(i0, 0), 0), textureLoad(trackData, vec2i(i1, 0), 0), fract(f));
+}
+
+// the drivable ribbon: uv = (lateral metres, + = left; distance along the lap)
+fn trackSurface(u: f32, s: f32, fu: f32, fs: f32, wp: vec3f) -> Mat {
   var m: Mat; m.metal = 0.0; m.coat = 0.0;
-  let x = abs(wp.x); let z = wp.z;
-  let fp = max(fx, fz);
-  let road = band(x, -1.0, 6.0, fx);
-  let kerbW = band(x, 6.0, 7.4, fx);
+  let info = trackInfo(s);
+  let hw = info.x; let x = abs(u);
+  let fp = max(fu, fs);
+  let road = band(x, -1.0, hw, fu);
+  let kerbW = band(x, hw, hw + 1.5, fu) * info.y;
+  let grassW = max(0.0, 1.0 - road - kerbW);
   m.base = vec3f(0.0); m.rough = 0.0;
-  var wsum = 0.0;
-  // grass with mowing stripes (8 m bands) and clumps - only where grass shows
-  let gw = 1.0 - road - kerbW;
-  if (gw > 0.0) {
-    let stripe = sqw(z / 8.0, fz / 8.0);
+  if (grassW > 0.0) {      // run-off grass with 10 m mowing stripes across the track direction
+    let stripe = sqw(s / 10.0, fs / 10.0);
     let clump = fnoise(wp.xz * 0.35, fp * 0.35) * 0.6 + fnoise(wp.xz * 2.1, fp * 2.1) * 0.4;
-    m.base += mix(vec3f(0.035, 0.085, 0.018), vec3f(0.06, 0.125, 0.026), stripe) * (0.75 + 0.5 * clump) * gw;
-    m.rough += 0.92 * gw;
+    m.base += mix(vec3f(0.032, 0.08, 0.017), vec3f(0.055, 0.12, 0.024), stripe) * (0.75 + 0.5 * clump) * grassW;
+    m.rough += 0.92 * grassW;
   }
-  // asphalt: fine grain, darker rubbered racing line, lighter dusty edges, painted edge line
   if (road > 0.0) {
     let grain = fnoise(wp.xz * 9.0, fp * 9.0) * 0.5 + fnoise(wp.xz * 2.3, fp * 2.3) * 0.5;
-    let rubber = 1.0 - smoothstep(0.6, 2.2, abs(wp.x - 2.2 * sin(z * 0.013)));
-    var asph = vec3f(0.055) * (0.75 + 0.5 * grain);
-    asph = mix(asph, vec3f(0.032), rubber * 0.8);
-    asph = mix(asph, vec3f(0.085, 0.08, 0.075), smoothstep(4.0, 5.6, x) * 0.6);
-    var ar = mix(0.82, 0.62, rubber) - grain * 0.08;
-    let paint = band(x, 5.45, 5.7, fx);
-    asph = mix(asph, vec3f(0.7), paint); ar = mix(ar, 0.55, paint);
+    let patchy = smoothstep(0.62, 0.66, fnoise(vec2f(s * 0.05, u * 0.2), fs * 0.05));            // repaired patches
+    let rubber = 1.0 - smoothstep(0.5, 2.3, abs(u - info.z));
+    var asph = vec3f(0.058) * (0.78 + 0.45 * grain);
+    asph = mix(asph, vec3f(0.042), patchy * 0.7);
+    asph = mix(asph, vec3f(0.03), rubber * 0.75);
+    asph = mix(asph, vec3f(0.08, 0.075, 0.07), smoothstep(hw - 2.5, hw - 0.6, x) * (1.0 - rubber) * 0.6);   // marbles / dust off line
+    var ar = mix(0.8, 0.6, rubber) - grain * 0.08;
+    // white edge lines
+    let paint = band(x, hw - 0.45, hw - 0.2, fu);
+    // start/finish line (checkered) and grid boxes behind it
+    var d = s - F.track.y;
+    d = d - F.track.x * round(d / F.track.x);
+    var mark = paint;
+    if (abs(d) < 0.8) { mark = max(mark, band(d, -0.6, 0.6, fs) * abs(sqw(u / 1.2, fu / 1.2) - sqw(d / 1.2 + 0.25, fs / 1.2))); }
+    let back = -d;
+    if (back > 6.0 && back < 74.0) {
+      let k = round((back - 10.0) / 8.0);
+      let side = select(-3.0, 3.0, (i32(k) % 2) == 0);
+      let front = 10.0 + k * 8.0;
+      mark = max(mark, band(back, front - 0.12, front + 0.12, fs) * band(u, side - 1.3, side + 1.3, fu));
+      mark = max(mark, band(back, front, front + 1.4, fs) * (band(u, side - 1.42, side - 1.3, fu) + band(u, side + 1.3, side + 1.42, fu)));
+    }
+    asph = mix(asph, vec3f(0.72), mark); ar = mix(ar, 0.5, mark);
     m.base += asph * road; m.rough += ar * road;
   }
-  // kerbs: 3 m red/white blocks
   if (kerbW > 0.0) {
-    m.base += mix(vec3f(0.55, 0.02, 0.015), vec3f(0.72, 0.72, 0.7), sqw(z / 3.0, fz / 3.0)) * kerbW;
+    m.base += mix(vec3f(0.55, 0.02, 0.015), vec3f(0.72, 0.72, 0.7), sqw(s / 3.0, fs / 3.0)) * kerbW;
     m.rough += 0.5 * kerbW;
   }
+  return m;
+}
+
+// farmland: irregular fields (meadow, wheat, ploughed earth, pasture) with crop rows in different directions,
+// rock on steep slopes
+fn terrainSurface(wp: vec3f, N: vec3f, fp: f32) -> Mat {
+  var m: Mat; m.metal = 0.0; m.coat = 0.0;
+  let warp = vec2f(vnoise(wp.xz * 0.004), vnoise(wp.xz * 0.004 + 7.3)) * 90.0;
+  let q = wp.xz + warp;
+  let cell = floor(q / 170.0);
+  let h = hash2(cell + 17.0);
+  let ang = hash2(cell + 3.0) * PI;
+  let dir = vec2f(cos(ang), sin(ang));
+  let rows = sqw(dot(wp.xz, dir) / 4.0, fp / 4.0);
+  let fine = fnoise(wp.xz * 1.7, fp * 1.7);
+  let big = vnoise(wp.xz * 0.02);
+  var c = vec3f(0.045, 0.1, 0.022) * (0.8 + 0.4 * big);                     // meadow
+  var r = 0.95;
+  if (h > 0.70 && h < 0.80) { c = mix(vec3f(0.2, 0.16, 0.06), vec3f(0.26, 0.21, 0.08), rows); r = 0.9; }   // wheat
+  else if (h >= 0.80 && h < 0.90) { c = mix(vec3f(0.11, 0.07, 0.045), vec3f(0.08, 0.05, 0.032), rows); }    // ploughed
+  else if (h >= 0.90) { c = mix(vec3f(0.06, 0.12, 0.03), vec3f(0.075, 0.14, 0.035), rows); }             // mown pasture
+  c *= 0.8 + 0.4 * fine;
+  // hedges along field edges
+  let e = abs(fract(q / 170.0) - 0.5);
+  let hedge = 1.0 - smoothstep(0.485, 0.497, max(e.x, e.y));
+  c = mix(c, vec3f(0.025, 0.05, 0.015), (1.0 - hedge) * 0.6);
+  // rock on steep slopes (the distant ridges)
+  let rock = smoothstep(0.86, 0.72, N.y);
+  c = mix(c, vec3f(0.16, 0.14, 0.12) * (0.7 + 0.6 * fine), rock); r = mix(r, 0.85, rock);
+  m.base = c; m.rough = r;
   return m;
 }
 
@@ -235,37 +354,44 @@ fn envBRDF(f0: vec3f, rough: f32, NoV: f32) -> vec3f {
   return f0 * ab.x + ab.y;
 }
 
-@fragment fn fs(in: VOut) -> @location(0) vec4f {
+@fragment fn fs(in: VOut, @builtin(front_facing) front: bool) -> @location(0) vec4f {
   let fx = fwidth(in.wp.x); let fz = fwidth(in.wp.z);
+  let fu = fwidth(in.uv.x); let fsd = fwidth(in.uv.y);
+  let kind = in.pbr.w;
+  var N = normalize(in.n);
+  if (!front) { N = -N; }
   var m: Mat;
   m.base = in.base.rgb; m.metal = in.pbr.x; m.rough = in.pbr.y; m.coat = in.pbr.z;
-  if (in.pbr.w > 0.5) { m = trackSurface(in.wp, fx, fz); }
+  if (kind > 0.5 && kind < 1.5) { m = trackSurface(in.uv.x, in.uv.y, fu, fsd, in.wp); }
+  else if (kind > 1.5 && kind < 2.5) { m = terrainSurface(in.wp, N, max(fx, fz)); }
 
-  let N = normalize(in.n);
   let V = normalize(F.camPos.xyz - in.wp);
   let L = F.sunDir.xyz;
   let H = normalize(V + L);
-  let NoV = max(dot(N, V), 1e-4); let NoL = max(dot(N, L), 0.0); let NoH = max(dot(N, H), 0.0); let VoH = max(dot(V, H), 0.0);
+  let NoV = max(dot(N, V), 1e-4); let NoLr = dot(N, L); let NoL = max(NoLr, 0.0); let NoH = max(dot(N, H), 0.0); let VoH = max(dot(V, H), 0.0);
   let rough = clamp(m.rough, 0.045, 1.0);
   let a = rough * rough;
   let f0 = mix(vec3f(0.04), m.base, m.metal);
-  let sunL = sunRadianceAt(in.wp.y);
+  let sh = shadowAt(in.wp, N);
+  let sunL = sunRadianceAt(in.wp.y) * sh;
 
-  // direct sun: GGX specular + energy-conserving Lambert
+  // direct sun: GGX specular + energy-conserving Lambert (foliage: wrapped, light passes through leaves)
   let Fs = F_Schlick(f0, VoH);
   let spec = D_GGX(NoH, a) * V_Smith(NoV, NoL, a) * Fs;
+  var diffL = NoL;
+  if (kind > 3.5 && kind < 4.5) { diffL = max((NoLr + 0.45) / 1.45, 0.0); }
   let diff = (vec3f(1.0) - Fs) * (1.0 - m.metal) * m.base / PI;
-  var col = (diff + spec) * sunL * NoL;
+  var col = diff * sunL * diffL + spec * sunL * NoL;
 
-  // ambient from the sky (+ a bounce from the sunlit ground below)
+  // ambient from the sky (+ a bounce from the sunlit ground below); shadowed areas get a touch less sky
   let skyUp = skyL(normalize(vec3f(N.x, max(N.y, 0.0) + 0.6, N.z)));
-  let groundRad = vec3f(0.12, 0.13, 0.09) * (sunL * max(F.sunDir.y, 0.0) + skyL(vec3f(0.0, 1.0, 0.0)) * PI) / PI;
-  let irr = PI * (skyUp * (0.5 + 0.5 * N.y) + groundRad * (0.5 - 0.5 * N.y)) * F.params.y;
+  let groundRad = vec3f(0.1, 0.11, 0.07) * (sunRadianceAt(0.0) * max(F.sunDir.y, 0.0) + skyL(vec3f(0.0, 1.0, 0.0)) * PI) / PI;
+  let occ = mix(0.75, 1.0, sh);
+  let irr = PI * (skyUp * (0.5 + 0.5 * N.y) + groundRad * (0.5 - 0.5 * N.y)) * F.params.y * occ;
   let R = reflect(-V, N);
   var env = groundRad;
   if (R.y > 0.0) { env = mix(skyL(R), skyUp, rough * rough); }
-  env = mix(env, groundRad, smoothstep(0.05, -0.05, R.y));
-  // multi-scatter compensation keeps rough metals from going dark
+  env = mix(env, groundRad, smoothstep(0.05, -0.05, R.y)) * occ;
   let eb = envBRDF(f0, rough, NoV);
   let ms = 1.0 + f0 * (1.0 / max(eb.y + eb.x, 0.2) - 1.0) * 0.5;
   col += (1.0 - m.metal) * m.base * irr / PI * (vec3f(1.0) - eb) + env * eb * ms;
@@ -275,10 +401,21 @@ fn envBRDF(f0: vec3f, rough: f32, NoV: f32) -> vec3f {
     let Fc = (0.04 + 0.96 * pow(1.0 - NoV, 5.0)) * m.coat;
     let ca = 0.05 * 0.05;
     let cspec = D_GGX(NoH, ca) * V_Smith(NoV, NoL, ca) * (0.04 + 0.96 * pow(1.0 - VoH, 5.0)) * m.coat;
-    col = col * (1.0 - Fc) + cspec * sunL * NoL + skyL(normalize(vec3f(R.x, max(R.y, 0.02), R.z))) * Fc * smoothstep(-0.1, 0.05, R.y) + groundRad * Fc * smoothstep(0.05, -0.1, R.y);
+    col = col * (1.0 - Fc) + cspec * sunL * NoL + (skyL(normalize(vec3f(R.x, max(R.y, 0.02), R.z))) * smoothstep(-0.1, 0.05, R.y) + groundRad * smoothstep(0.05, -0.1, R.y)) * Fc * occ;
   }
   col += in.emit.rgb * in.emit.w;
   return vec4f(applyFog(col, in.wp), 1.0);
+}
+`;
+
+// depth-only pass into one shadow cascade
+export const SHADOW = /* wgsl */`
+struct Inst { model: mat4x4f, base: vec4f, pbr: vec4f, emit: vec4f };
+struct Cascade { vp: mat4x4f };
+@group(0) @binding(0) var<uniform> C: Cascade;
+@group(1) @binding(0) var<storage, read> insts: array<Inst>;
+@vertex fn vs(@location(0) p: vec3f, @builtin(instance_index) ii: u32) -> @builtin(position) vec4f {
+  return C.vp * (insts[ii].model * vec4f(p, 1.0));
 }
 `;
 

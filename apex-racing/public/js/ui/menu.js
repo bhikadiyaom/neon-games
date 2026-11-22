@@ -16,10 +16,10 @@ let toastT = 0;
 export function toast(text) { const t = $('toast'); t.textContent = text; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 
 export class Menu {
-  constructor({ net, options, profile, onOptions, onProfile, code }) {
-    this.net = net; this.options = options; this.profile = profile; this.onOptions = onOptions; this.onProfile = onProfile; this.code = code;
+  constructor({ net, options, profile, onOptions, onProfile, code, onStart }) {
+    this.net = net; this.options = options; this.profile = profile; this.onOptions = onOptions; this.onProfile = onProfile; this.code = code; this.onStart = onStart;
     this.items = [
-      { id: 'race', label: 'Race', soon: true }, { id: 'trial', label: 'Time trial', soon: true },
+      { id: 'race', label: 'Race' }, { id: 'trial', label: 'Time trial' },
       { id: 'room', label: 'Room & track' }, { id: 'garage', label: 'Garage' }, { id: 'options', label: 'Options' }, { id: 'credits', label: 'Credits' },
     ];
     this.sel = 0; this.focus = 'menu'; this.page = 'room'; this.rows = []; this.rowSel = 0;
@@ -39,8 +39,9 @@ export class Menu {
   }
   activate() {
     const it = this.items[this.sel];
-    if (it.soon) { sfx.deny(); toast(it.id === 'race' ? 'Racing arrives in the next update. Set up your room and garage now!' : 'Time trial arrives in the next update.'); return; }
+    if (it.soon) { sfx.deny(); toast('Coming in a later update.'); return; }
     sfx.select();
+    if (it.id === 'race' || it.id === 'trial') { this.onStart(it.id); return; }
     this.page = it.id; this.renderSheet();
     if (this.rows.length) { this.focus = 'sheet'; this.rowSel = 0; }
     this.paint();

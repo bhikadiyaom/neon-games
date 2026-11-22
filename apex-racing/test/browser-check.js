@@ -3,6 +3,7 @@
 //   nav:URL        open a page            wait:MS        sleep
 //   size:WxH       viewport size           eval:JS        evaluate (await-able), print the JSON result
 //   shot:FILE.png  screenshot              key:KEY        press a key (ArrowDown, Enter, Escape, F3...)
+//   keydown:KEY / keyup:KEY   hold / release a key (driving)
 //   tab            open a second tab and drive it from now on
 //   init:JS        run JS in every new page before its own scripts (e.g. hide navigator.gpu)
 // Env: BROWSER=path to msedge.exe/chrome.exe, HEADFUL=1 to watch it.
@@ -64,6 +65,9 @@ class Tab {
     } else if (cmd === 'shot') {
       const r = await tab.send('Page.captureScreenshot', { format: arg.endsWith('.jpg') ? 'jpeg' : 'png', quality: 90 });
       fs.writeFileSync(arg, Buffer.from(r.data, 'base64')); console.log('saved ' + arg);
+    } else if (cmd === 'keydown' || cmd === 'keyup') {
+      const key = arg, code = key.length === 1 ? 'Key' + key.toUpperCase() : key, vk = { Enter: 13, Escape: 27, ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, F3: 114, Space: 32 }[key] || key.toUpperCase().charCodeAt(0);
+      await tab.send('Input.dispatchKeyEvent', { type: cmd === 'keydown' ? 'rawKeyDown' : 'keyUp', key: key === 'Space' ? ' ' : key, code, windowsVirtualKeyCode: vk });
     } else if (cmd === 'key') {
       const key = arg, code = key.length === 1 ? 'Key' + key.toUpperCase() : key, vk = { Enter: 13, Escape: 27, ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, F3: 114 }[key] || key.toUpperCase().charCodeAt(0);
       for (const type of ['keyDown', 'keyUp']) await tab.send('Input.dispatchKeyEvent', { type, key, code, windowsVirtualKeyCode: vk, text: type === 'keyDown' && key.length === 1 ? key : undefined });
@@ -71,4 +75,6 @@ class Tab {
     } else console.log('unknown step ' + step);
   }
   for (const [n, t] of tabs.entries()) if (t.logs.length) console.log(`# tab ${n} console:\n  ` + t.logs.slice(0, 30).join('\n  '));
-})().catch(e => { console.error('ERROR', e.message); process.exitCode = 1; }).finally(() => { proc.kill(); setTimeout(() => { try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch {} process.exit(); }, 400); });
+  // close the whole browser (on Windows killing the launcher alone leaves its GPU/renderer processes running)
+  try { const v = await getJson('/json/version'); const b = new Tab(v.webSocketDebuggerUrl); await b.ready; b.send('Browser.close').catch(() => {}); await sleep(600); } catch {}
+})().catch(e => { console.error('ERROR', e.message); process.exitCode = 1; }).finally(() => { try { proc.kill(); } catch {} setTimeout(() => { try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch {} process.exit(); }, 600); });

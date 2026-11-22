@@ -179,26 +179,35 @@ KNOWN LIMITATIONS
     for the neon look (the game still works offline with fallback fonts).
   - Tested with headless browsers and unit tests, not yet with real internet latency on Render.
 
-NEON APEX GP - 3D racing (folder: apex-racing)   [work in progress: phase 1 of 8]
+NEON APEX GP - 3D racing (folder: apex-racing)   [work in progress: phase 2 of 8]
 =================================================================================
 START: double-click "Start Neon Apex GP.bat" (opens http://127.0.0.1:3006). Online: create a Neon Apex GP
 room from the hub and send the invite link or the 4-letter code. Up to 8 racers; more people can watch.
 NEEDS: Chrome or Edge (version 113+) with graphics acceleration on. The game draws with WebGPU. If WebGPU
   is missing, the game shows a page that explains how to switch it on. WebGPU only works on https pages or on
   http://127.0.0.1, so on a LAN other PCs must use the online room link instead of http://192.168...:3006.
-WHAT WORKS NOW (phase 1): the hand-written WebGPU engine (sky, lighting, track surface, frame graph),
-  the title screen with a live 3D scene, rooms and the host dashboard (track, laps, AI rivals, difficulty,
-  weather, time of day, assists, car class, qualifying, collisions), the garage (name, car, livery colour),
-  graphics options and the F3 performance overlay. Driving and racing arrive in the next updates.
+WHAT WORKS NOW (phase 2): the Valmore Hills circuit (3.1 km, hills, banking, kerbs, grandstands with crowds,
+  start gantry with lights, trees, farmland), sunset or day light with long soft shadows, a drivable car
+  with full physics (suspension, tyres, gearbox, ABS / traction control), Race (start lights, laps, sectors,
+  results) and Time trial (flying laps, personal bests saved in this browser). The title screen shows your
+  car lapping the circuit. Rooms, the host dashboard, garage, options and the F3 overlay work as before.
+  Not yet: AI rivals, racing against other people in the room, the other four tracks, rain and night.
+DRIVING: Up / W = throttle. Down / S = brake (hold when stopped to reverse). Left / Right or A / D = steer.
+  Space = handbrake. C = camera (chase, far chase, bonnet, roof). B = look back. R = back on the track.
+  E / Q = shift up / down (switches to manual gears). Esc = pause.
+  Gamepad: right trigger = throttle, left trigger = brake, left stick = steer, X = handbrake, Y = camera,
+  LB = look back, RB / B = shift, Start = pause.
 MENU KEYS: Up / Down = choose. Left / Right = change a value. Enter = select. Esc = back. F3 = stats.
-  A gamepad also works (d-pad or left stick, A = select, B = back). The mouse works everywhere.
 GRAPHICS PRESETS (Options): Low renders at most 1280 x 720 (built-in laptop graphics), Medium 1600 x 900,
   High 1920 x 1080, Ultra up to 4K. Dynamic resolution lowers the resolution a little when the frame
-  rate drops (never below 75% on High). Your options, car and colour are saved in this browser.
-MEASURED (phase 1, on this PC with Intel integrated graphics): Low = 60 FPS; High at 1080p = about 34 FPS
-  (integrated graphics are far below the mid-range target card; numbers on a real gaming GPU are not
-  measured yet). Server: about 50 MB of memory per room, a game tick costs about 0.03 ms.
+  rate drops (never below 75% on High). Your options, car, colour and best laps are saved in this browser.
+MEASURED (phase 2, this PC: Intel integrated graphics, which is far below the mid-range target card):
+  Low about 55-60 FPS with dynamic resolution (39 FPS at a fixed 1248 x 702); High at a fixed 1080p 16 FPS.
+  The "60 FPS at 1080p on a mid-range graphics card" target is not measured yet (no such card here).
+  Server: about 50 MB of memory per room, a game tick with 8 racers costs about 0.02 ms.
+  Car physics: about 0.03 ms per step at 240 steps per second. The whole game downloads as about 74 KB.
 SETTINGS: online rooms start from the defaults; on the LAN they are saved in apex-racing\settings.json.
   Only the room host can change them.
 TESTS: node apex-racing/test/server.test.js   node apex-racing/test/hub.test.js
+  node apex-racing/test/track-check.mjs   node apex-racing/test/physics.test.mjs
   node apex-racing/test/browser-check.js ...  (drives a real Edge/Chrome; see the top of the file)
