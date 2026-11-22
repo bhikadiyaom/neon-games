@@ -1,4 +1,4 @@
-// Neon Arcade hub: landing page + private rooms for Neon Arena, Neon Strike and Neon Blitz.
+// Neon Arcade hub: landing page + private rooms for Neon Arena, Neon Strike, Neon Blitz and Neon Apex GP.
 // Every room is its own game-server process (the same server.js files used on the LAN), so one room
 // crashing or lagging never affects another. The hub proxies HTTP + WebSocket to the right room.
 // No npm packages needed.
@@ -16,6 +16,7 @@ const GAMES = {
   arena:  { title: 'Neon Arena',  dir: __dirname },
   strike: { title: 'Neon Strike', dir: path.join(__dirname, 'fps-strike') },
   blitz:  { title: 'Neon Blitz',  dir: path.join(__dirname, 'neon-blitz') },
+  apex:   { title: 'Neon Apex GP', dir: path.join(__dirname, 'apex-racing') },
 };
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I so codes are easy to read out loud
 const rooms = new Map();   // code -> { code, game, port, key, child, created, emptySince, humans }
@@ -36,9 +37,21 @@ function waitForPort(port, tries = 40) {
     attempt(tries);
   });
 }
+// true if something already listens on this port (a stale process, another program): never hand it to a room
+const portBusy = port => new Promise(resolve => {
+  const s = net.connect(port, '127.0.0.1');
+  s.on('connect', () => { s.destroy(); resolve(true); });
+  s.on('error', () => { s.destroy(); resolve(false); });
+});
 async function createRoom(game) {
   let code; do code = code4(); while (rooms.has(code));
-  const port = nextPort++; if (nextPort > 4999) nextPort = 4100;
+  const used = new Set([...rooms.values()].map(r => r.port));
+  let port = 0;
+  for (let i = 0; i < 60 && !port; i++) {
+    const p = nextPort++; if (nextPort > 4999) nextPort = 4100;
+    if (!used.has(p) && !(await portBusy(p))) port = p;
+  }
+  if (!port) throw new Error('no free port');
   const key = crypto.randomBytes(12).toString('hex');
   const g = GAMES[game];
   const child = spawn(process.execPath, ['server.js'], {
@@ -47,8 +60,9 @@ async function createRoom(game) {
   });
   const room = { code, game, port, key, child, created: Date.now(), emptySince: Date.now(), humans: 0 };
   rooms.set(code, room);
-  child.on('exit', () => rooms.delete(code));
-  try { await waitForPort(port); } catch (e) { closeRoom(room); throw e; }
+  let exited = false;
+  child.on('exit', () => { exited = true; rooms.delete(code); });
+  try { await waitForPort(port); if (exited) throw new Error('room exited'); } catch (e) { closeRoom(room); throw e; }
   return room;
 }
 function closeRoom(room) { rooms.delete(room.code); try { room.child.kill(); } catch {} }

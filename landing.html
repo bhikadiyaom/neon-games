@@ -44,20 +44,24 @@
   .b-strike { background: linear-gradient(135deg, var(--pk), #b03cff); box-shadow: 0 8px 30px rgba(255, 61, 129, .5); width: 100%; }
   .b-arena { background: linear-gradient(135deg, #00c2e6, #3c7bff); box-shadow: 0 8px 30px rgba(0, 194, 230, .45); width: 100%; }
   .b-blitz { background: linear-gradient(135deg, #ffb020, #ff5a3d); box-shadow: 0 8px 30px rgba(255, 150, 32, .45); width: 100%; color: #1a1030; }
+  .b-apex { background: linear-gradient(135deg, #ff2d55, #7a4dff); box-shadow: 0 8px 30px rgba(255, 45, 85, .45); width: 100%; }
 
   .or { text-align: center; color: var(--dim); letter-spacing: 4px; font-size: 13px; margin: 34px 0 6px; text-transform: uppercase; display: flex; align-items: center; gap: 16px; }
   .or::before, .or::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--edge)); } .or::after { transform: scaleX(-1); }
-  .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; margin-top: 18px; }
+  .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; margin-top: 18px; }
   .game { position: relative; border-radius: 24px; overflow: hidden; background: linear-gradient(170deg, rgba(24, 22, 60, .78), rgba(8, 8, 24, .85)); border: 1px solid var(--edge); transition: transform .25s, box-shadow .25s, border-color .25s; display: flex; flex-direction: column; }
   .game:hover { transform: translateY(-6px); }
   .game.strike:hover { border-color: rgba(255, 61, 129, .7); box-shadow: 0 24px 70px rgba(255, 61, 129, .25); }
   .game.arena:hover { border-color: rgba(0, 229, 255, .7); box-shadow: 0 24px 70px rgba(0, 229, 255, .22); }
   .game.blitz:hover { border-color: rgba(255, 176, 32, .75); box-shadow: 0 24px 70px rgba(255, 176, 32, .24); }
+  .game.apex:hover { border-color: rgba(255, 45, 85, .75); box-shadow: 0 24px 70px rgba(255, 45, 85, .25); }
+  .game .new { position: absolute; top: 14px; right: 14px; font: 800 11px 'Orbitron', sans-serif; letter-spacing: 2px; padding: 6px 10px; border-radius: 8px; background: #ff2d55; color: #fff; box-shadow: 0 0 18px rgba(255, 45, 85, .6); }
   .game canvas { display: block; width: 100%; height: 190px; background: #04050f; border-bottom: 1px solid var(--edge); }
   .gbody { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
   .game h2 { margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 26px; letter-spacing: 3px; }
   .strike h2 { color: var(--pk); text-shadow: 0 0 18px rgba(255, 61, 129, .55); } .arena h2 { color: var(--cy); text-shadow: 0 0 18px rgba(0, 229, 255, .5); }
   .blitz h2 { color: #ffb020; text-shadow: 0 0 18px rgba(255, 176, 32, .55); }
+  .apex h2 { color: #ff4d6d; text-shadow: 0 0 18px rgba(255, 45, 85, .55); }
   .kind { color: var(--dim); letter-spacing: 3px; font-size: 13px; text-transform: uppercase; margin: 4px 0 12px; }
   .gbody p { margin: 0 0 16px; color: #c7cff7; line-height: 1.5; flex: 1; font-size: 19px; }
   .pills { margin-bottom: 18px; } .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .5px; padding: 4px 12px; border: 1px solid var(--edge); border-radius: 99px; margin: 0 6px 6px 0; color: var(--dim); background: rgba(255, 255, 255, .03); }
@@ -76,7 +80,8 @@
   .step em { font-style: normal; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 34px; background: linear-gradient(135deg, var(--cy), var(--pk)); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
   .step h4 { margin: 6px 0 4px; font-size: 21px; letter-spacing: 1px; } .step p { margin: 0; color: var(--dim); font-size: 17px; line-height: 1.45; }
   footer { margin-top: 50px; text-align: center; color: rgba(154, 164, 216, .6); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
-  @media (max-width: 560px) { .joinrow { flex-direction: column; } .linkbox { flex-direction: column; } .games { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .games { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .joinrow { flex-direction: column; } .linkbox { flex-direction: column; } }
 </style>
 </head>
 <body>
@@ -86,7 +91,7 @@
 
   <header class="hero">
     <h1>NEON<br>ARCADE</h1>
-    <p>Fast neon shooters you play with friends. <b>Make a private room, share the code,</b> and you're in a match in seconds. Nothing to install.</p>
+    <p>Fast neon games you play with friends. <b>Make a private room, share the code,</b> and you're in a match in seconds. Nothing to install.</p>
     <div class="joinbar">
       <h3>HAVE A ROOM CODE?</h3>
       <div class="joinrow"><input id="code" maxlength="4" placeholder="----" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn b-join" id="joinBtn">JOIN ROOM</button></div>
@@ -97,6 +102,15 @@
   <div class="or">or start your own room</div>
 
   <div class="games">
+    <section class="game apex">
+      <canvas id="pvApex" width="640" height="380"></canvas><span class="new">NEW &middot; 3D</span>
+      <div class="gbody">
+        <h2>NEON APEX GP</h2><div class="kind">3D racing (WebGPU)</div>
+        <p>Race up to 8 drivers on five circuits, from a golden-hour hill track to a neon harbour at night. Pick a car and livery, set laps, weather and AI rivals. Needs Chrome or Edge with graphics acceleration.</p>
+        <div class="pills"><span class="pill">1-8 racers</span><span class="pill">5 tracks</span><span class="pill">AI rivals</span><span class="pill">WebGPU</span></div>
+        <button class="btn b-apex" data-game="apex">CREATE ROOM</button>
+      </div>
+    </section>
     <section class="game strike">
       <canvas id="pvStrike" width="640" height="380"></canvas>
       <div class="gbody">
@@ -132,7 +146,7 @@
     <div class="codebig" id="bigCode"></div>
     <div class="linkbox"><input id="inviteLink" readonly><button class="btn b-join" id="copyBtn">COPY</button></div>
     <button class="btn b-go" id="enterBtn">ENTER MY ROOM</button>
-    <div class="note">You are the host: change bots, mode and win score from the dashboard (press Esc in the game).</div>
+    <div class="note">You are the host: change the game settings from the dashboard in the game (press Esc in the shooters, or open Room &amp; track in Neon Apex GP).</div>
   </div>
 
   <div class="steps">
@@ -228,6 +242,43 @@ runPreview('pvBlitz', (g, W, H, t) => { // side-view arena: two robots on platfo
   g.globalCompositeOperation = 'source-over';
   g.strokeStyle = '#fff'; g.lineWidth = 2; const cx = 330 + Math.sin(t * 1.3) * 70, cy = 190; g.beginPath(); g.arc(cx, cy, 11, 0, 7); g.moveTo(cx - 18, cy); g.lineTo(cx - 6, cy); g.moveTo(cx + 6, cy); g.lineTo(cx + 18, cy); g.moveTo(cx, cy - 18); g.lineTo(cx, cy - 6); g.moveTo(cx, cy + 6); g.lineTo(cx, cy + 18); g.stroke();
   const vg = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(4,0,14,.7)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+});
+
+runPreview('pvApex', (g, W, H, t) => { // chase view down a sunset straight: kerbs rushing past, a GT car with glowing taillights, speed lines
+  const hz = H * .44, vx = W / 2 + Math.sin(t * .5) * 30;
+  let s = g.createLinearGradient(0, 0, 0, hz); s.addColorStop(0, '#1a1440'); s.addColorStop(.55, '#7a3a5a'); s.addColorStop(1, '#ffb070'); g.fillStyle = s; g.fillRect(0, 0, W, hz);
+  const sun = g.createRadialGradient(vx + 120, hz - 8, 0, vx + 120, hz - 8, 120); sun.addColorStop(0, 'rgba(255,240,200,1)'); sun.addColorStop(.12, 'rgba(255,200,120,.9)'); sun.addColorStop(1, 'rgba(255,140,80,0)'); g.fillStyle = sun; g.fillRect(0, 0, W, hz + 20);
+  g.fillStyle = '#2a1d3a'; g.beginPath(); g.moveTo(0, hz); for (let x = 0; x <= W; x += 20) g.lineTo(x, hz - 18 - Math.sin(x * .013 + 1) * 14 - Math.sin(x * .031) * 6); g.lineTo(W, hz); g.fill();
+  s = g.createLinearGradient(0, hz, 0, H); s.addColorStop(0, '#1b2a14'); s.addColorStop(1, '#0d1a08'); g.fillStyle = s; g.fillRect(0, hz, W, H - hz);
+  const road = p => ({ l: vx - (12 + p * (W * .62)), r: vx + (12 + p * (W * .62)) });
+  g.fillStyle = '#26232c'; g.beginPath(); g.moveTo(vx - 12, hz); g.lineTo(vx + 12, hz); g.lineTo(vx + W * .64, H); g.lineTo(vx - W * .64, H); g.fill();
+  const off = (t * 2.2) % 1;
+  for (let i = 0; i < 18; i++) { // kerbs rushing past
+    const a = Math.pow((i + off) / 18, 2.4), b = Math.pow((i + off + .5) / 18, 2.4), ya = hz + a * (H - hz), yb = hz + b * (H - hz), ra = road(a), rb = road(b), wa = 4 + a * 40, wb = 4 + b * 40;
+    g.fillStyle = i % 2 ? '#ff2d55' : '#f2f2f2';
+    g.beginPath(); g.moveTo(ra.l - wa, ya); g.lineTo(ra.l, ya); g.lineTo(rb.l, yb); g.lineTo(rb.l - wb, yb); g.fill();
+    g.beginPath(); g.moveTo(ra.r + wa, ya); g.lineTo(ra.r, ya); g.lineTo(rb.r, yb); g.lineTo(rb.r + wb, yb); g.fill();
+  }
+  g.globalCompositeOperation = 'lighter'; g.strokeStyle = 'rgba(255,220,200,.35)'; g.lineWidth = 2;
+  for (let i = 0; i < 14; i++) { const k = (t * 1.7 + i * .37) % 1, a = i * 2.39, r0 = 120 + k * 360, r1 = r0 + 40 + k * 80; g.beginPath(); g.moveTo(vx + Math.cos(a) * r0, hz + Math.sin(a) * r0 * .6); g.lineTo(vx + Math.cos(a) * r1, hz + Math.sin(a) * r1 * .6); g.stroke(); }
+  g.globalCompositeOperation = 'source-over';
+  const cx = W / 2 + Math.sin(t * 1.3) * 14, cy = H - 70, bob = Math.sin(t * 9) * 1.2; // the car, seen from behind
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(cx, cy + 46, 120, 14, 0, 0, 7); g.fill();
+  g.fillStyle = '#111'; for (const sx of [-1, 1]) { g.beginPath(); g.roundRect(cx + sx * 92 - 16, cy + 8 + bob, 32, 40, 6); g.fill(); }
+  s = g.createLinearGradient(0, cy - 40, 0, cy + 40); s.addColorStop(0, '#d0283c'); s.addColorStop(1, '#5a0a14'); g.fillStyle = s;
+  g.beginPath(); g.moveTo(cx - 108, cy + 30 + bob); g.lineTo(cx - 96, cy - 6 + bob); g.lineTo(cx - 54, cy - 30 + bob); g.lineTo(cx + 54, cy - 30 + bob); g.lineTo(cx + 96, cy - 6 + bob); g.lineTo(cx + 108, cy + 30 + bob); g.closePath(); g.fill();
+  g.fillStyle = '#0d0d14'; g.beginPath(); g.roundRect(cx - 44, cy - 26 + bob, 88, 18, 5); g.fill();
+  g.fillStyle = '#16161e'; g.fillRect(cx - 112, cy - 46 + bob, 224, 9); g.fillRect(cx - 112, cy - 56 + bob, 8, 22); g.fillRect(cx + 104, cy - 56 + bob, 8, 22);
+  g.fillRect(cx - 60, cy - 38 + bob, 6, 10); g.fillRect(cx + 54, cy - 38 + bob, 6, 10);
+  g.fillStyle = '#1a1a22'; g.fillRect(cx - 100, cy + 22 + bob, 200, 10);
+  g.fillStyle = '#c9c9d4'; g.font = 'italic 900 13px Orbitron, sans-serif'; g.textAlign = 'center'; g.fillText('APEX', cx, cy + 14 + bob);
+  g.globalCompositeOperation = 'lighter';
+  for (const sx of [-1, 1]) { const lx = cx + sx * 70; const gl = g.createRadialGradient(lx, cy + 2 + bob, 0, lx, cy + 2 + bob, 46); gl.addColorStop(0, 'rgba(255,40,60,.95)'); gl.addColorStop(1, 'rgba(255,0,40,0)'); g.fillStyle = gl; g.fillRect(lx - 46, cy - 44 + bob, 92, 92); g.fillStyle = '#ff6070'; g.fillRect(lx - 22, cy + bob, 44, 5); }
+  for (const sx of [-1, 1]) { const ex = cx + sx * 16, fl = Math.max(0, Math.sin(t * 7 + sx)); g.fillStyle = 'rgba(255,150,60,' + (.25 + fl * .4) + ')'; g.beginPath(); g.arc(ex, cy + 30 + bob, 6 + fl * 4, 0, 7); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = 'rgba(5,6,15,.7)'; g.fillRect(W - 128, H - 58, 112, 44); g.fillStyle = '#fff'; g.font = 'italic 900 28px Orbitron, sans-serif'; g.textAlign = 'right'; g.fillText(Math.round(268 + Math.sin(t * .7) * 14), W - 52, H - 26);
+  g.font = '700 11px Rajdhani, sans-serif'; g.fillStyle = '#9aa4d8'; g.fillText('KM/H', W - 22, H - 26);
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(4,0,14,.6)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
 });
 
 /* ---------- rooms ---------- */

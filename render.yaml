@@ -4,12 +4,12 @@ services:
   - type: web
     name: neon-arcade
     runtime: node
-    plan: free            # switch to "starter" so it never sleeps (recommended once you share it widely)
+    plan: free            # stays free: the service sleeps after ~15 min idle and wakes on the next visit
     buildCommand: "echo no build needed"
     startCommand: node hub.js
     healthCheckPath: /api/status
     envVars:
       - key: MAX_ROOMS
-        value: "8"        # each room is a small separate process; 8 fits comfortably in 512 MB
+        value: "8"        # each room is one process (~50 MB measured) + hub (~48 MB): 8 rooms fit in 512 MB
       - key: ROOM_IDLE_MINUTES
         value: "10"       # empty rooms close after this long

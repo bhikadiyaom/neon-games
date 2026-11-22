@@ -1,28 +1,30 @@
 PUTTING NEON ARCADE ONLINE (anyone, anywhere)
 =============================================
 What you get: ONE web address with a lobby. Visitors press "Create private room" for Neon Strike,
-Neon Arena or Neon Blitz, get a 4-letter code + invite link, and send it to friends. Each room is its own match, so
+Neon Arena, Neon Blitz or Neon Apex GP, get a 4-letter code + invite link, and send it to friends. Each room is its own match, so
 strangers never end up in the same game. Rooms close by themselves when empty. Nothing to install.
 
 Try it on your own PC first:  double-click "Start Online Hub (test).bat"  (opens http://127.0.0.1:3050).
 
 STEP 1 - GitHub (once)
-  Create a repository on github.com, then in D:\Games:
+  Create a repository on github.com, then in the project folder (D:\Neon game on this PC):
       git remote set-url origin https://github.com/YOUR-USERNAME/YOUR-REPO.git
       git push -u origin main
 STEP 2 - Render
   render.com > New > Blueprint > pick the repo > Apply. You get a link like https://neon-arcade.onrender.com.
-STEP 3 - Make it yours
-  - Buy a short, unique domain (Namecheap / Cloudflare, about $10-15 a year).
-  - Render > the service > Settings > Custom Domains > add it; Render shows the 2 DNS records to create.
+STEP 3 - Make it yours (free)
+  - Share the free https://....onrender.com link. No domain purchase is needed.
   - To rename the brand, edit the title/heading in landing.html ("NEON ARCADE") and push.
-STEP 4 - Keep it fast
-  Free plan sleeps after ~15 min idle (first visitor waits up to a minute). Plan "starter" (about $7/month)
-  stays awake: change  plan: free  to  plan: starter  in render.yaml, or pick it in the Render dashboard.
+STEP 4 - The free plan (this project stays on it)
+  The free plan sleeps after ~15 min idle; the first visitor then waits up to a minute while it wakes up.
+  Every git push to main redeploys in about a minute and ends the rooms that are running at that moment.
 
 LIMITS / SAFETY
-  - MAX_ROOMS (default 8) rooms at once; each room holds up to 8 players. Raise MAX_ROOMS only with a bigger plan.
+  - MAX_ROOMS (default 8) rooms at once; each room holds up to 8 players. Measured: a Neon Apex GP room uses
+    about 50 MB and the hub about 48 MB, so 8 rooms fit in the free plan's 512 MB. Do not raise MAX_ROOMS.
   - 4 room creations per visitor per minute. Rooms are private: only people with the link or code get in.
-  - The person who creates a room is its host (dashboard: bots, mode, win score). Others see it read-only.
+  - The person who creates a room is its host (dashboard: bots, mode, win score; in Neon Apex GP: track, laps,
+    AI rivals, weather, time of day and more). Others see it read-only.
+  - Neon Apex GP needs WebGPU (Chrome or Edge with graphics acceleration). Without it, players see a help page.
   - No accounts, no chat, no saved scores: everything lives in memory and disappears when the room closes.
   - LAN play (Start ... .bat files) still works exactly as before.

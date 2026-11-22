@@ -1,12 +1,13 @@
-FOUR GAMES IN THIS FOLDER
+FIVE GAMES IN THIS FOLDER
 =========================
   Neon Arena   (top-down team shooter) ......... double-click "Start Game Server.bat"
   Neon Strike  (first-person 3D shooter) ....... double-click "Start Neon Strike.bat"
   Snake Clash  (snake battle, free for all) .... double-click "Start Snake Clash.bat"
   Neon Blitz   (side-view platform shooter) .... double-click "Start Neon Blitz.bat"
+  Neon Apex GP (3D racing, WebGPU) ............. double-click "Start Neon Apex GP.bat"
   Each game has its OWN port, so you can run them at the same time:
     Neon Arena  -> http://localhost:3000     Neon Strike -> http://localhost:3003     Snake Clash -> http://localhost:3004
-    Neon Blitz  -> http://localhost:3005
+    Neon Blitz  -> http://localhost:3005     Neon Apex GP -> http://127.0.0.1:3006 (this PC only, see its section)
   Your colleague uses the same address with YOUR PC's IP (the start window prints it), e.g. http://192.168.1.68:3003
   Run "Allow Through Firewall.bat" once (it now opens 3000, 3002, 3003 and 3004).
   Starting a game again only restarts that same game; it never stops another program.
@@ -177,3 +178,27 @@ KNOWN LIMITATIONS
   - Keyboard + mouse only (no touch screens). Fonts load from Google Fonts, so the menu needs internet
     for the neon look (the game still works offline with fallback fonts).
   - Tested with headless browsers and unit tests, not yet with real internet latency on Render.
+
+NEON APEX GP - 3D racing (folder: apex-racing)   [work in progress: phase 1 of 8]
+=================================================================================
+START: double-click "Start Neon Apex GP.bat" (opens http://127.0.0.1:3006). Online: create a Neon Apex GP
+room from the hub and send the invite link or the 4-letter code. Up to 8 racers; more people can watch.
+NEEDS: Chrome or Edge (version 113+) with graphics acceleration on. The game draws with WebGPU. If WebGPU
+  is missing, the game shows a page that explains how to switch it on. WebGPU only works on https pages or on
+  http://127.0.0.1, so on a LAN other PCs must use the online room link instead of http://192.168...:3006.
+WHAT WORKS NOW (phase 1): the hand-written WebGPU engine (sky, lighting, track surface, frame graph),
+  the title screen with a live 3D scene, rooms and the host dashboard (track, laps, AI rivals, difficulty,
+  weather, time of day, assists, car class, qualifying, collisions), the garage (name, car, livery colour),
+  graphics options and the F3 performance overlay. Driving and racing arrive in the next updates.
+MENU KEYS: Up / Down = choose. Left / Right = change a value. Enter = select. Esc = back. F3 = stats.
+  A gamepad also works (d-pad or left stick, A = select, B = back). The mouse works everywhere.
+GRAPHICS PRESETS (Options): Low renders at most 1280 x 720 (built-in laptop graphics), Medium 1600 x 900,
+  High 1920 x 1080, Ultra up to 4K. Dynamic resolution lowers the resolution a little when the frame
+  rate drops (never below 75% on High). Your options, car and colour are saved in this browser.
+MEASURED (phase 1, on this PC with Intel integrated graphics): Low = 60 FPS; High at 1080p = about 34 FPS
+  (integrated graphics are far below the mid-range target card; numbers on a real gaming GPU are not
+  measured yet). Server: about 50 MB of memory per room, a game tick costs about 0.03 ms.
+SETTINGS: online rooms start from the defaults; on the LAN they are saved in apex-racing\settings.json.
+  Only the room host can change them.
+TESTS: node apex-racing/test/server.test.js   node apex-racing/test/hub.test.js
+  node apex-racing/test/browser-check.js ...  (drives a real Edge/Chrome; see the top of the file)
