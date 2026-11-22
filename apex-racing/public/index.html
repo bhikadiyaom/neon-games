@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05060f">
+<title>Neon Apex GP</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305060f'/%3E%3Cpath d='M14 46 L30 14 H40 L28 38 H48 L44 46 Z' fill='%23ff2d55'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,700;1,800;1,900&family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* 1rem = 16 px on a 1920x1080 screen; everything scales with the window (also ultrawide and 4K). */
+  html { font-size: max(8px, calc(min(100vw, 177.78vh) / 120)); }
+  :root { --bg: #05060f; --ink: #eef2ff; --dim: #9aa4d8; --cy: #00e5ff; --pk: #ff3d81; --vi: #7a4dff; --red: #ff2d55; --edge: rgba(150, 160, 255, .26);
+    --disp: 'Barlow Condensed', 'Rajdhani', sans-serif; --ui: 'Rajdhani', system-ui, sans-serif; --hd: 'Orbitron', sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; }
+  body { font-family: var(--ui); font-weight: 500; font-size: 1.25rem; user-select: none; -webkit-user-select: none; }
+  canvas#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .screen { position: fixed; inset: 0; display: none; }
+  .screen.on { display: block; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  a { color: var(--cy); }
+
+  /* ---------- loading ---------- */
+  #loading { background: radial-gradient(120% 90% at 70% 110%, #3a1b10 0%, #160b20 45%, #05060f 80%); z-index: 30; }
+  #loading .ld { position: absolute; left: 7rem; bottom: 7rem; width: 60rem; }
+  .logo { font-family: var(--disp); font-style: italic; font-weight: 900; font-size: 6.6rem; line-height: .9; letter-spacing: .05rem; text-transform: uppercase; color: #fff; text-shadow: 0 .3rem 2rem rgba(0,0,0,.5); }
+  .logo em { font-style: italic; color: var(--red); }
+  .bar { width: 9rem; height: .55rem; background: var(--red); margin: 1.1rem 0 1.2rem; box-shadow: 0 0 1.4rem rgba(255, 45, 85, .6); transform: skewX(-20deg); }
+  .prog { height: .5rem; background: rgba(255,255,255,.1); border-radius: .3rem; overflow: hidden; margin-top: 2rem; }
+  .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--red), var(--pk), var(--vi)); transition: width .25s; box-shadow: 0 0 1rem var(--pk); }
+  #ldStep { margin-top: .8rem; color: var(--dim); font-size: 1.15rem; letter-spacing: .05rem; min-height: 1.6rem; }
+  #ldTip { margin-top: 2.4rem; color: #cfd6ff; font-size: 1.3rem; max-width: 50rem; border-left: .25rem solid var(--pk); padding-left: 1rem; }
+  #ldErr { display: none; margin-top: 1.4rem; white-space: pre-wrap; font: 600 1rem/1.4 Consolas, monospace; color: #ffb3c0; background: rgba(40,0,10,.7); border: 1px solid #ff3d5a; border-radius: .6rem; padding: 1rem; max-height: 40vh; overflow: auto; user-select: text; }
+
+  /* ---------- WebGPU fallback ---------- */
+  #fallback { background: radial-gradient(90% 70% at 50% 120%, #2a1250, #05060f 70%); z-index: 40; overflow: auto; }
+  #fallback .card { max-width: 62rem; margin: 6rem auto; padding: 3rem 3.4rem; border-radius: 1.6rem; background: linear-gradient(160deg, rgba(30, 26, 70, .75), rgba(8, 8, 26, .85)); border: 1px solid var(--edge); box-shadow: 0 2rem 6rem rgba(0,0,0,.6), 0 0 5rem rgba(122, 77, 255, .2); }
+  #fallback h2 { font-family: var(--hd); font-size: 1.6rem; letter-spacing: .2rem; color: var(--pk); margin: 1.6rem 0 .6rem; }
+  #fallback p, #fallback li { font-size: 1.35rem; line-height: 1.5; color: #d9defa; }
+  #fallback code { font: 600 1.15rem Consolas, monospace; background: rgba(0,229,255,.1); color: var(--cy); padding: .1rem .4rem; border-radius: .3rem; user-select: text; }
+  #fbWhy { color: #ffd45a !important; font-weight: 700; }
+  .btnx { display: inline-block; margin-top: 1.6rem; margin-right: 1rem; font-family: var(--hd); font-weight: 900; font-size: 1.05rem; letter-spacing: .15rem; padding: 1rem 1.8rem; border-radius: .9rem; text-decoration: none; color: #fff; background: linear-gradient(135deg, #4a56ff, #7a4dff); box-shadow: 0 .4rem 1.6rem rgba(122, 77, 255, .5); }
+  .btnx.alt { background: rgba(255,255,255,.08); box-shadow: none; border: 1px solid var(--edge); }
+
+  /* ---------- title / menus ---------- */
+  #title { z-index: 10; }
+  #title .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,6,15,.72) 0%, rgba(5,6,15,.35) 38%, rgba(5,6,15,0) 60%), linear-gradient(0deg, rgba(5,6,15,.55), rgba(5,6,15,0) 30%); pointer-events: none; }
+  #title .left { position: absolute; left: 5.4rem; top: 9.5rem; width: 26rem; }
+  .tag { font-size: 1.3rem; color: #e6e9ff; text-shadow: 0 .1rem .6rem rgba(0,0,0,.6); }
+  #menu { margin-top: 2.6rem; display: flex; flex-direction: column; gap: .35rem; }
+  #menu button { position: relative; text-align: left; font-family: var(--disp); font-weight: 700; font-size: 1.55rem; letter-spacing: .03rem; padding: .55rem 1.1rem; color: #f4f6ff;
+    background: linear-gradient(90deg, rgba(10,12,30,.72), rgba(10,12,30,.35)); border-left: .32rem solid transparent; transition: background .12s, color .12s, transform .12s; }
+  #menu button.sel { background: #fff; color: #10121f; border-left-color: var(--red); transform: translateX(.4rem); box-shadow: 0 .4rem 1.6rem rgba(0,0,0,.35); }
+  #menu button .soon { float: right; font-family: var(--ui); font-size: .95rem; font-weight: 700; color: var(--pk); letter-spacing: .1rem; margin-top: .35rem; }
+  #menu button.sel .soon { color: var(--red); }
+  .hint { margin-top: 1.6rem; font-size: 1rem; color: #c9cff0; letter-spacing: .04rem; text-shadow: 0 .1rem .4rem #000; }
+
+  /* right-hand sheet: room / garage / options / credits */
+  #sheet { position: absolute; right: 4.6rem; top: 7rem; width: 36rem; max-height: calc(100% - 12rem); overflow: auto; padding: 1.8rem 2rem 2rem; border-radius: 1.4rem;
+    background: linear-gradient(160deg, rgba(24, 22, 62, .82), rgba(7, 8, 24, .88)); border: 1px solid var(--edge); backdrop-filter: blur(1rem); -webkit-backdrop-filter: blur(1rem);
+    box-shadow: 0 1.6rem 5rem rgba(0,0,0,.55), 0 0 4rem rgba(122, 77, 255, .15); }
+  #sheet::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(120deg, var(--cy), transparent 35%, transparent 65%, var(--pk)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: .7; }
+  #sheet h3 { margin: 0 0 1rem; font-family: var(--hd); font-size: 1.05rem; letter-spacing: .3rem; color: var(--cy); display: flex; justify-content: space-between; align-items: center; }
+  #sheet h3 small { font-family: var(--ui); letter-spacing: .05rem; font-size: 1rem; color: var(--dim); }
+  .code { font-family: var(--hd); font-weight: 900; font-size: 3rem; letter-spacing: .9rem; color: #fff; text-shadow: 0 0 1.6rem rgba(0,229,255,.6); }
+  .status { display: flex; align-items: center; gap: .6rem; font-size: 1.1rem; color: var(--dim); }
+  .status b { width: .7rem; height: .7rem; border-radius: 50%; background: #ffd45a; box-shadow: 0 0 .8rem #ffd45a; }
+  .status.ok b { background: #5dff8a; box-shadow: 0 0 .8rem #5dff8a; } .status.bad b { background: #ff3d5a; box-shadow: 0 0 .8rem #ff3d5a; }
+  .roster { margin: 1rem 0 .4rem; display: flex; flex-direction: column; gap: .3rem; }
+  .racer { display: grid; grid-template-columns: .35rem 2.8rem 1fr auto; align-items: center; gap: .7rem; padding: .45rem .7rem; background: rgba(255,255,255,.05); border-radius: .5rem; font-size: 1.15rem; }
+  .racer i { height: 1.6rem; border-radius: .2rem; } .racer .n { font-family: var(--disp); font-weight: 800; font-style: italic; font-size: 1.35rem; text-align: right; }
+  .racer .c { color: var(--dim); font-size: 1rem; } .racer.me { background: rgba(0,229,255,.12); }
+  .rows { display: flex; flex-direction: column; gap: .35rem; margin-top: .6rem; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem .8rem; border-radius: .6rem; background: rgba(255,255,255,.04); border: 1px solid transparent; min-height: 3.1rem; }
+  .row.sel { background: rgba(0,229,255,.12); border-color: rgba(0,229,255,.55); box-shadow: 0 0 1.2rem rgba(0,229,255,.15); }
+  .row label { font-weight: 700; font-size: 1.15rem; color: #dfe4ff; }
+  .row .val { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: 1.15rem; }
+  .row .arrow { width: 2rem; height: 2rem; border-radius: .4rem; background: rgba(255,255,255,.08); color: var(--cy); font-size: 1rem; }
+  .row .arrow:hover { background: rgba(0,229,255,.25); }
+  .row .v { min-width: 9rem; text-align: center; }
+  .row.ro .arrow { visibility: hidden; }
+  .swatches { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+  .swatches button { width: 1.9rem; height: 1.9rem; border-radius: .4rem; border: 2px solid rgba(255,255,255,.2); }
+  .swatches button.on { border-color: #fff; box-shadow: 0 0 .8rem rgba(255,255,255,.6); }
+  .row input[type=text] { font: 700 1.15rem var(--ui); color: #fff; background: rgba(0,0,0,.35); border: 1px solid var(--edge); border-radius: .4rem; padding: .35rem .6rem; width: 13rem; outline: none; user-select: text; }
+  .row input[type=color] { width: 2.2rem; height: 2rem; border: 0; padding: 0; background: none; cursor: pointer; }
+  .note { margin-top: .9rem; font-size: 1rem; color: var(--dim); line-height: 1.4; }
+  .note b { color: #ffd45a; }
+  .linkrow { display: flex; gap: .5rem; margin-top: .6rem; }
+  .linkrow input { flex: 1; min-width: 0; font: 600 1rem var(--ui); color: #cfe9ff; background: rgba(0,0,0,.35); border: 1px solid var(--edge); border-radius: .4rem; padding: .4rem .6rem; user-select: text; }
+  .linkrow button, .sbtn { font-family: var(--hd); font-weight: 900; font-size: .85rem; letter-spacing: .12rem; padding: .5rem 1rem; border-radius: .5rem; background: linear-gradient(135deg, #4a56ff, #7a4dff); }
+  .credits p { font-size: 1.2rem; line-height: 1.5; color: #d9defa; margin: .5rem 0; }
+
+  #toast { position: fixed; left: 50%; bottom: 6rem; transform: translateX(-50%) translateY(1rem); opacity: 0; transition: .25s; z-index: 50; padding: .9rem 1.6rem; border-radius: .8rem;
+    background: rgba(10, 10, 30, .9); border: 1px solid var(--pk); font-weight: 700; font-size: 1.25rem; box-shadow: 0 0 2rem rgba(255,61,129,.35); pointer-events: none; }
+  #toast.on { opacity: 1; transform: translateX(-50%); }
+
+  /* ---------- F3 profiler ---------- */
+  #prof { position: fixed; left: .8rem; top: .8rem; z-index: 60; display: none; font: 600 12px/1.45 Consolas, monospace; color: #dfe6ff; background: rgba(4, 6, 16, .82); border: 1px solid rgba(0,229,255,.4); border-radius: 8px; padding: 8px 10px; min-width: 300px; pointer-events: none; }
+  #prof table { border-collapse: collapse; margin-top: 4px; width: 100%; } #prof td { padding: 0 6px 0 0; } #prof td + td { text-align: right; color: #9ff3ff; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<!--IMPORTMAP-->
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="loading" class="screen on">
+  <div class="ld">
+    <div class="logo">Neon Apex <em>GP</em></div>
+    <div class="bar"></div>
+    <div class="tag">Five circuits. Seven rivals. Or the clock.</div>
+    <div class="prog"><i id="ldBar"></i></div>
+    <div id="ldStep">Starting...</div>
+    <div id="ldTip"></div>
+    <div id="ldErr"></div>
+  </div>
+</div>
+
+<div id="fallback" class="screen">
+  <div class="card">
+    <div class="logo" style="font-size:4.6rem">Neon Apex <em>GP</em></div>
+    <div class="bar"></div>
+    <h2>YOUR BROWSER CAN'T RUN THE 3D ENGINE YET</h2>
+    <p>Neon Apex GP draws its graphics with <b>WebGPU</b>, the modern graphics system in current browsers.</p>
+    <p id="fbWhy"></p>
+    <h2>HOW TO FIX IT</h2>
+    <ol>
+      <li>Use the latest <b>Google Chrome</b> or <b>Microsoft Edge</b> on Windows, macOS or ChromeOS (version 113 or newer). Current Safari and Firefox on Windows also work.</li>
+      <li>Turn on graphics acceleration: open <code>chrome://settings/system</code>, switch on <b>"Use graphics acceleration when available"</b>, then restart the browser.</li>
+      <li>Check <code>chrome://gpu</code>: the line <b>WebGPU</b> should say "Hardware accelerated".</li>
+      <li>On Linux or older graphics cards, open <code>chrome://flags/#enable-unsafe-webgpu</code>, set it to <b>Enabled</b> and restart.</li>
+      <li>Update your graphics driver if the steps above do not help.</li>
+    </ol>
+    <a class="btnx" href="/">BACK TO THE LOBBY</a><a class="btnx alt" href="" onclick="location.reload();return false">TRY AGAIN</a>
+  </div>
+</div>
+
+<div id="title" class="screen">
+  <div class="shade"></div>
+  <div class="left">
+    <div class="logo">Neon Apex <em>GP</em></div>
+    <div class="bar"></div>
+    <div class="tag">Five circuits. Seven rivals. Or the clock.</div>
+    <div id="menu"></div>
+    <div class="hint">&uarr; &darr; choose &middot; &larr; &rarr; change &middot; Enter select &middot; Esc back &middot; F3 stats</div>
+  </div>
+  <div id="sheet"></div>
+</div>
+
+<div id="toast"></div>
+<div id="prof"></div>
+
+<script src="shared/apex-shared.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
